@@ -1,6 +1,4 @@
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,11 +8,18 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
     const { reason, notes } = await request.json();
     const withdrawalId = params.id;
 
     if (!reason) {
-      return errorResponse('Rejection reason is required');
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'Rejection reason is required'
+      }, { status: 400 });
     }
 
     const withdrawal = await prisma.withdrawal.findUnique({
@@ -22,11 +27,19 @@ export async function POST(
     });
 
     if (!withdrawal) {
-      return errorResponse('Withdrawal not found', 404);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'Withdrawal not found'
+      }, { status: 404 });
     }
 
     if (withdrawal.status !== 'PENDING') {
-      return errorResponse('Withdrawal is not pending', 400);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'Withdrawal is not pending'
+      }, { status: 400 });
     }
 
     // Update withdrawal and restore balance
@@ -60,9 +73,18 @@ export async function POST(
       return updatedWithdrawal;
     });
 
-    return successResponse(updated, 'Withdrawal rejected');
+    await prisma.$disconnect();
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      message: 'Withdrawal rejected'
+    });
   } catch (error) {
     console.error('POST /api/withdrawals/[id]/reject error:', error);
-    return errorResponse('Internal server error', 500);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }

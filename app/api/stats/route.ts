@@ -1,12 +1,13 @@
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'all';
 
@@ -77,21 +78,29 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return successResponse({
-      overview: {
-        totalUsers,
-        activeUsersToday,
-        tasksCompletedToday,
-        totalTasksCompleted,
-        pendingWithdrawals,
-        completedWithdrawals,
-        totalCoinsDistributed: totalCoinsDistributed._sum.amount || BigInt(0),
-      },
-      topUsers,
-      topReferrers,
+    await prisma.$disconnect();
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        overview: {
+          totalUsers,
+          activeUsersToday,
+          tasksCompletedToday,
+          totalTasksCompleted,
+          pendingWithdrawals,
+          completedWithdrawals,
+          totalCoinsDistributed: totalCoinsDistributed._sum.amount || 0,
+        },
+        topUsers,
+        topReferrers,
+      }
     });
   } catch (error) {
     console.error('GET /api/stats error:', error);
-    return errorResponse('Internal server error', 500);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }

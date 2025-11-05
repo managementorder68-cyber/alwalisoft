@@ -1,6 +1,4 @@
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,11 +8,18 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
     const { userId, verified = false } = await request.json();
     const taskId = params.id;
 
     if (!userId || !taskId) {
-      return errorResponse('Missing required fields');
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields'
+      }, { status: 400 });
     }
 
     // Get task and user
@@ -24,11 +29,19 @@ export async function POST(
     ]);
 
     if (!task) {
-      return errorResponse('Task not found', 404);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'Task not found'
+      }, { status: 404 });
     }
 
     if (!user) {
-      return errorResponse('User not found', 404);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'User not found'
+      }, { status: 404 });
     }
 
     // Check if already completed
@@ -40,11 +53,15 @@ export async function POST(
     });
 
     if (existingCompletion) {
-      return errorResponse('Task already completed', 409);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'Task already completed'
+      }, { status: 409 });
     }
 
-    // Complete task and award coins
-    const reward = BigInt(task.reward + (task.bonusReward || 0));
+    // Complete task and award coins (now Int, not BigInt)
+    const reward = task.reward + (task.bonusReward || 0);
 
     const result = await prisma.$transaction(async (tx) => {
       // Update user balance
@@ -61,7 +78,7 @@ export async function POST(
         data: {
           userId,
           taskId,
-          rewardAmount: Number(reward),
+          rewardAmount: reward,
           verified,
         },
       });
@@ -114,13 +131,22 @@ export async function POST(
       };
     });
 
-    return successResponse({
-      rewardAmount: Number(result.reward),
-      newBalance: Number(result.newBalance),
-      verified,
-    }, 'Task completed successfully');
+    await prisma.$disconnect();
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        rewardAmount: result.reward,
+        newBalance: result.newBalance,
+        verified,
+      },
+      message: 'Task completed successfully'
+    });
   } catch (error) {
     console.error('POST /api/tasks/[id]/complete error:', error);
-    return errorResponse('Internal server error', 500);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }

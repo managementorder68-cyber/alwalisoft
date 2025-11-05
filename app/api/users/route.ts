@@ -1,13 +1,14 @@
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
-import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const telegramId = searchParams.get('telegramId');
@@ -22,15 +23,23 @@ export async function GET(request: NextRequest) {
       });
 
       if (!user) {
-        return errorResponse('User not found', 404);
+        await prisma.$disconnect();
+        return NextResponse.json({
+          success: false,
+          error: 'User not found'
+        }, { status: 404 });
       }
 
-      return successResponse(user);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: true,
+        data: user
+      });
     }
 
     if (telegramId) {
       const user = await prisma.user.findUnique({
-        where: { telegramId: BigInt(telegramId) },
+        where: { telegramId: String(telegramId) },
         include: {
           statistics: true,
           wallet: true,
@@ -38,10 +47,18 @@ export async function GET(request: NextRequest) {
       });
 
       if (!user) {
-        return errorResponse('User not found', 404);
+        await prisma.$disconnect();
+        return NextResponse.json({
+          success: false,
+          error: 'User not found'
+        }, { status: 404 });
       }
 
-      return successResponse(user);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: true,
+        data: user
+      });
     }
 
     // Get all users with pagination
@@ -61,37 +78,56 @@ export async function GET(request: NextRequest) {
       prisma.user.count(),
     ]);
 
-    return successResponse({
-      users,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+    await prisma.$disconnect();
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      }
     });
   } catch (error) {
     console.error('GET /api/users error:', error);
-    return errorResponse('Internal server error', 500);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
     const { telegramId, username, firstName, lastName, languageCode, referralCode } = await request.json();
 
     // Validate required fields
     if (!telegramId) {
-      return errorResponse('Telegram ID is required');
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'Telegram ID is required'
+      }, { status: 400 });
     }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { telegramId: BigInt(telegramId) },
+      where: { telegramId: String(telegramId) },
     });
 
     if (existingUser) {
-      return errorResponse('User already exists', 409);
+      await prisma.$disconnect();
+      return NextResponse.json({
+        success: false,
+        error: 'User already exists'
+      }, { status: 409 });
     }
 
     // Find referrer if referral code provided
@@ -110,14 +146,14 @@ export async function POST(request: NextRequest) {
       // Create user
       const newUser = await tx.user.create({
         data: {
-          telegramId: BigInt(telegramId),
+          telegramId: String(telegramId),
           username: username || `user_${telegramId}`,
           firstName,
           lastName,
           languageCode: languageCode || 'en',
           referralCode: `ref_${nanoid(10)}`,
           referredById: referrerId,
-          balance: referrerId ? BigInt(2000) : BigInt(2000),
+          balance: referrerId ? 2000 : 2000,
         },
       });
 
@@ -147,7 +183,7 @@ export async function POST(request: NextRequest) {
       // Process referral rewards if applicable
       if (referrerId) {
         // Level 1 referral
-        const level1Reward = BigInt(5000);
+        const level1Reward = 5000;
         
         await tx.user.update({
           where: { id: referrerId },
@@ -185,9 +221,18 @@ export async function POST(request: NextRequest) {
       return newUser;
     });
 
-    return successResponse(user, 'User created successfully');
+    await prisma.$disconnect();
+
+    return NextResponse.json({
+      success: true,
+      data: user,
+      message: 'User created successfully'
+    });
   } catch (error) {
     console.error('POST /api/users error:', error);
-    return errorResponse('Internal server error', 500);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }

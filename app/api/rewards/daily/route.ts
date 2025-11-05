@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 
 // Check if user can claim daily reward
 export async function GET(req: NextRequest) {
-  const prisma = new PrismaClient();
+  let prisma: PrismaClient | null = null;
   
   try {
     const { searchParams } = new URL(req.url);
@@ -15,19 +15,20 @@ export async function GET(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({
         success: false,
-        message: 'User ID is required'
+        message: 'معرف المستخدم مطلوب'
       }, { status: 400 });
     }
 
+    prisma = new PrismaClient();
+
     const user = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { telegramId: String(userId) }
     });
 
     if (!user) {
-      await prisma.$disconnect();
       return NextResponse.json({
         success: false,
-        message: 'User not found'
+        message: 'المستخدم غير موجود'
       }, { status: 404 });
     }
 

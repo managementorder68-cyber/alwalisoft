@@ -184,6 +184,20 @@ export default function AdminDashboard() {
                   </div>
                 </Card>
               </Link>
+
+              <Link href="/admin/analytics">
+                <Card className="bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+                  <div className="p-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-orange-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">التحليلات</h3>
+                      <p className="text-sm text-gray-400">إحصائيات وتحليلات شاملة</p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
             </div>
 
             {/* Warning Card */}

@@ -402,10 +402,10 @@ async function verifyTaskCompletion(ctx: BotContext, taskId: string) {
       ctx.prisma.userStatistics.update({
         where: { userId },
         data: {
-          dailyEarnings: { increment: reward },
-          weeklyEarnings: { increment: reward },
-          monthlyEarnings: { increment: reward },
-          totalEarnings: { increment: reward },
+          dailyEarnings: { increment: Number(reward) },
+          weeklyEarnings: { increment: Number(reward) },
+          monthlyEarnings: { increment: Number(reward) },
+          totalEarnings: { increment: Number(reward) },
           lastTaskCompletedAt: new Date(),
         },
       }),

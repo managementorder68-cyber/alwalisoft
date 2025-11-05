@@ -10,26 +10,32 @@ export const sessionMiddleware: Middleware<BotContext> = async (ctx, next) => {
   }
 
   try {
-    // Try to load session from Redis
+    // Try to load session from Redis if available
     const sessionKey = `session:${telegramId}`;
-    const sessionData = await ctx.redis.get(sessionKey);
+    
+    if (ctx.redis) {
+      const sessionData = await ctx.redis.get(sessionKey);
 
-    if (sessionData) {
-      ctx.session = JSON.parse(sessionData);
-    } else {
-      // Check if user exists in database
-      const user = await ctx.prisma.user.findUnique({
-        where: { telegramId: BigInt(telegramId) },
-      });
+      if (sessionData) {
+        ctx.session = JSON.parse(sessionData);
+        return next();
+      }
+    }
 
-      if (user) {
-        ctx.session = {
-          userId: user.id,
-          telegramId: Number(user.telegramId),
-          language: user.languageCode,
-        };
+    // Check if user exists in database
+    const user = await ctx.prisma.user.findUnique({
+      where: { telegramId: telegramId },
+    });
 
-        // Save to Redis
+    if (user) {
+      ctx.session = {
+        userId: user.id,
+        telegramId: user.telegramId,
+        language: user.languageCode,
+      };
+
+      // Save to Redis if available
+      if (ctx.redis) {
         await ctx.redis.setex(
           sessionKey,
           3600, // 1 hour

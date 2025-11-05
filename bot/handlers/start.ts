@@ -18,7 +18,7 @@ export async function handleStart(ctx: BotContext) {
   try {
     // Check if user already exists
     let user = await ctx.prisma.user.findUnique({
-      where: { telegramId: BigInt(telegramId) },
+      where: { telegramId: telegramId },
     });
 
     const isNewUser = !user;
@@ -46,7 +46,7 @@ export async function handleStart(ctx: BotContext) {
       // Create new user
       user = await ctx.prisma.user.create({
         data: {
-          telegramId: BigInt(telegramId),
+          telegramId: telegramId,
           username: username || `user_${telegramId}`,
           firstName,
           lastName,
@@ -96,17 +96,19 @@ export async function handleStart(ctx: BotContext) {
     // Create session
     ctx.session = {
       userId: user.id,
-      telegramId: Number(user.telegramId),
+      telegramId: user.telegramId,
       language: languageCode,
     };
 
-    // Save session to Redis
+    // Save session to Redis if available
     const sessionKey = `session:${telegramId}`;
-    await ctx.redis.setex(
-      sessionKey,
-      3600, // 1 hour
-      JSON.stringify(ctx.session)
-    );
+    if (ctx.redis) {
+      await ctx.redis.setex(
+        sessionKey,
+        3600, // 1 hour
+        JSON.stringify(ctx.session)
+      );
+    }
 
     // Send welcome message
     const isArabic = languageCode === 'ar';

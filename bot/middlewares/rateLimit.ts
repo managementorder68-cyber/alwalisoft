@@ -13,6 +13,11 @@ export const rateLimitMiddleware: Middleware<BotContext> = async (ctx, next) => 
   const rateLimitKey = `ratelimit:${telegramId}`;
 
   try {
+    // Skip if Redis not available
+    if (!ctx.redis) {
+      return next();
+    }
+
     // Get current count
     const count = await ctx.redis.incr(rateLimitKey);
 

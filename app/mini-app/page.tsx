@@ -13,7 +13,9 @@ import {
   Zap,
   Trophy,
   Wallet,
-  User as UserIcon
+  User as UserIcon,
+  Bell,
+  HelpCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -98,12 +100,27 @@ export default function MiniAppPage() {
             </h1>
             <p className="text-purple-300 text-sm">Level: {stats.level}</p>
           </div>
-          <Link href="/mini-app/profile">
-            <div className="bg-white/10 backdrop-blur-md rounded-full px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors">
-              <UserIcon className="w-5 h-5 text-purple-400 inline mr-2" />
-              <span className="font-bold">{stats.level}</span>
-            </div>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/mini-app/notifications">
+              <Button variant="ghost" size="icon" className="bg-white/10 hover:bg-white/20 relative">
+                <Bell className="w-5 h-5 text-purple-400" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center">
+                  3
+                </span>
+              </Button>
+            </Link>
+            <Link href="/mini-app/help">
+              <Button variant="ghost" size="icon" className="bg-white/10 hover:bg-white/20">
+                <HelpCircle className="w-5 h-5 text-purple-400" />
+              </Button>
+            </Link>
+            <Link href="/mini-app/profile">
+              <div className="bg-white/10 backdrop-blur-md rounded-full px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors">
+                <UserIcon className="w-5 h-5 text-purple-400 inline mr-2" />
+                <span className="font-bold">{stats.level}</span>
+              </div>
+            </Link>
+          </div>
         </div>
 
         {/* Balance Card */}

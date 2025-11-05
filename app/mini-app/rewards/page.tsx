@@ -4,37 +4,72 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  ArrowLeft, Gift, Calendar, CheckCircle, 
-  Coins, Zap, Star, Clock
+  ArrowLeft, Gift, Calendar, Coins, TrendingUp, Star, 
+  Sparkles, Zap, Crown, Flame, Trophy
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { ProtectedRoute } from '@/components/protected-route';
 
+interface DailyReward {
+  canClaim: boolean;
+  nextClaimTime?: string;
+  currentStreak: number;
+  rewardAmount: number;
+  maxReward: number;
+}
+
+interface WeeklyStats {
+  tasksCompleted: number;
+  gamesPlayed: number;
+  referralsMade: number;
+  totalEarned: number;
+}
+
 function RewardsContent() {
-  const { user, updateBalance } = useAuth();
-  const [dailyStreak, setDailyStreak] = useState(0);
-  const [lastClaim, setLastClaim] = useState<Date | null>(null);
-  const [canClaim, setCanClaim] = useState(false);
+  const { user, refreshUser } = useAuth();
+  const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
+    tasksCompleted: 0,
+    gamesPlayed: 0,
+    referralsMade: 0,
+    totalEarned: 0
+  });
+  const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
-    checkDailyReward();
+    loadDailyReward();
+    loadWeeklyStats();
   }, []);
 
-  const checkDailyReward = async () => {
+  const loadDailyReward = async () => {
     try {
-      const response = await fetch(`/api/rewards/daily?userId=${user?.id}`);
+      const response = await fetch('/api/rewards/daily');
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setDailyStreak(data.data.streak || 0);
-          setLastClaim(data.data.lastClaim ? new Date(data.data.lastClaim) : null);
-          setCanClaim(data.data.canClaim || false);
+          setDailyReward(data.data);
         }
       }
     } catch (error) {
-      console.error('Error checking daily reward:', error);
+      console.error('Error loading daily reward:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWeeklyStats = async () => {
+    try {
+      // Simulated weekly stats - في الإنتاج، يتم جلبها من الـ API
+      setWeeklyStats({
+        tasksCompleted: 12,
+        gamesPlayed: 8,
+        referralsMade: 3,
+        totalEarned: 4500
+      });
+    } catch (error) {
+      console.error('Error loading weekly stats:', error);
     }
   };
 
@@ -42,39 +77,62 @@ function RewardsContent() {
     setClaiming(true);
     try {
       const response = await fetch('/api/rewards/daily', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id })
+        method: 'POST'
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          // Update user balance
-          updateBalance(user!.balance + data.data.reward);
-          
-          // Update UI
-          setDailyStreak(data.data.newStreak);
-          setLastClaim(new Date());
-          setCanClaim(false);
-
-          // Show success
+          // Show success with confetti effect
           if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.showAlert(`🎉 You earned ${data.data.reward} coins!`);
+            window.Telegram.WebApp.showAlert(`🎉 تهانينا!\nحصلت على ${data.data.amount} عملة!`);
           }
+          
+          // Refresh data
+          await refreshUser();
+          await loadDailyReward();
+        }
+      } else {
+        const errorData = await response.json();
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert(errorData.error || 'فشل في الحصول على المكافأة');
         }
       }
     } catch (error) {
-      console.error('Error claiming daily reward:', error);
+      console.error('Error claiming reward:', error);
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert('حدث خطأ. حاول مرة أخرى.');
+      }
     } finally {
       setClaiming(false);
     }
   };
 
-  const getDailyReward = (day: number) => {
-    const rewards = [100, 150, 200, 300, 500, 750, 1000];
-    return rewards[Math.min(day, rewards.length) - 1] || 100;
+  const getTimeUntilNextClaim = () => {
+    if (!dailyReward?.nextClaimTime) return '';
+    
+    const now = new Date().getTime();
+    const nextClaim = new Date(dailyReward.nextClaimTime).getTime();
+    const diff = nextClaim - now;
+
+    if (diff <= 0) return 'الآن!';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours} ساعة ${minutes} دقيقة`;
   };
+
+  const getStreakLevel = () => {
+    const streak = dailyReward?.currentStreak || 0;
+    if (streak >= 30) return { name: 'أسطوري', icon: <Crown className="w-6 h-6" />, color: 'text-purple-400' };
+    if (streak >= 14) return { name: 'محترف', icon: <Trophy className="w-6 h-6" />, color: 'text-yellow-400' };
+    if (streak >= 7) return { name: 'متقدم', icon: <Flame className="w-6 h-6" />, color: 'text-orange-400' };
+    if (streak >= 3) return { name: 'مجتهد', icon: <Zap className="w-6 h-6" />, color: 'text-blue-400' };
+    return { name: 'مبتدئ', icon: <Sparkles className="w-6 h-6" />, color: 'text-gray-400' };
+  };
+
+  const streakLevel = getStreakLevel();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white">
@@ -87,184 +145,227 @@ function RewardsContent() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Daily Rewards</h1>
-            <p className="text-sm text-purple-300">المكافآت اليومية</p>
+            <h1 className="text-2xl font-bold">🎁 المكافآت</h1>
+            <p className="text-sm text-purple-300">احصل على مكافآتك اليومية</p>
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="px-6 py-6 pb-24">
-        {/* Daily Reward Card */}
-        <Card className="bg-gradient-to-r from-pink-600 to-purple-600 border-0 shadow-2xl mb-6">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-pink-200 text-sm mb-1">Daily Streak</p>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-8 h-8 text-yellow-400" />
-                  <h2 className="text-4xl font-bold">{dailyStreak}</h2>
-                  <span className="text-xl">Days</span>
-                </div>
-              </div>
-              <Gift className="w-16 h-16 text-white/20" />
-            </div>
-
-            <div className="pt-4 border-t border-white/20">
-              {canClaim ? (
-                <Button
-                  onClick={claimDailyReward}
-                  disabled={claiming}
-                  className="w-full h-14 bg-white text-purple-600 hover:bg-white/90 text-lg font-bold"
-                >
-                  {claiming ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-purple-600 mr-2"></div>
-                      Claiming...
-                    </>
-                  ) : (
-                    <>
-                      <Gift className="w-5 h-5 mr-2" />
-                      Claim {getDailyReward(dailyStreak + 1)} Coins
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <div className="text-center py-4">
-                  <Clock className="w-8 h-8 mx-auto mb-2 text-white/50" />
-                  <p className="text-white/70">Come back tomorrow!</p>
-                  {lastClaim && (
-                    <p className="text-xs text-white/50 mt-1">
-                      Last claimed: {lastClaim.toLocaleDateString('ar')}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto"></div>
+            <p className="mt-4 text-gray-400">جاري التحميل...</p>
           </div>
-        </Card>
-
-        {/* Streak Calendar */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            7-Day Streak Rewards
-          </h3>
-
-          <div className="grid grid-cols-7 gap-2">
-            {[1, 2, 3, 4, 5, 6, 7].map((day) => {
-              const isCompleted = day <= dailyStreak;
-              const isCurrent = day === dailyStreak + 1 && canClaim;
-              const reward = getDailyReward(day);
-
-              return (
-                <Card 
-                  key={day}
-                  className={`${
-                    isCompleted 
-                      ? 'bg-green-600/20 border-green-500/50' 
-                      : isCurrent
-                        ? 'bg-yellow-600/20 border-yellow-500/50 animate-pulse'
-                        : 'bg-white/5 border-white/10'
-                  } backdrop-blur-md relative`}
-                >
-                  <div className="p-3 text-center">
-                    {isCompleted && (
-                      <CheckCircle className="w-4 h-4 text-green-400 absolute top-1 right-1" />
+        ) : (
+          <>
+            {/* Daily Reward Card */}
+            <Card className="bg-gradient-to-br from-yellow-600 to-orange-600 border-0 shadow-2xl mb-6 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+              
+              <div className="p-6 relative">
+                <div className="text-center mb-6">
+                  <div className="relative inline-block">
+                    <Gift className="w-20 h-20 mx-auto mb-3" />
+                    {dailyReward?.canClaim && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-ping"></div>
                     )}
-                    <p className="text-xs text-gray-400 mb-1">Day {day}</p>
-                    <div className="flex items-center justify-center gap-1">
-                      <Coins className="w-3 h-3 text-yellow-400" />
-                      <p className="text-sm font-bold">{reward}</p>
-                    </div>
                   </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+                  <h2 className="text-3xl font-bold mb-2">المكافأة اليومية</h2>
+                  <p className="text-yellow-100">لا تنسَ الحصول على عملاتك!</p>
+                </div>
 
-        {/* Other Rewards */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">More Rewards</h3>
-          
-          <div className="space-y-3">
-            {/* Achievement Rewards */}
-            <Card className="bg-white/5 backdrop-blur-md border-white/10">
-              <div className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                    <Star className="w-6 h-6" />
+                {dailyReward?.canClaim ? (
+                  <Button
+                    onClick={claimDailyReward}
+                    disabled={claiming}
+                    className="w-full bg-white text-orange-600 hover:bg-gray-100 font-bold py-6 text-lg shadow-2xl hover:scale-105 transition-transform"
+                  >
+                    {claiming ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-orange-600 mr-2"></div>
+                        جاري الحصول على المكافأة...
+                      </>
+                    ) : (
+                      <>
+                        ✨ احصل على {dailyReward.rewardAmount} عملة
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="text-center bg-white/10 p-6 rounded-lg backdrop-blur-sm">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-80" />
+                    <p className="text-white/90 mb-2 text-lg">المكافأة التالية متاحة بعد:</p>
+                    <p className="text-4xl font-bold mb-2">{getTimeUntilNextClaim()}</p>
+                    <p className="text-sm text-yellow-100">ارجع غداً للحصول على مكافأتك!</p>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold mb-1">Achievement Rewards</h4>
-                    <p className="text-sm text-gray-400 mb-3">
-                      Complete milestones to earn bonus coins
-                    </p>
-                    <div className="flex gap-2">
-                      <span className="px-3 py-1 bg-yellow-500/20 rounded-full text-xs">
-                        10 Tasks = 5,000 coins
-                      </span>
-                      <span className="px-3 py-1 bg-blue-500/20 rounded-full text-xs">
-                        5 Referrals = 10,000 coins
-                      </span>
+                )}
+
+                {/* Streak Info */}
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Flame className="w-5 h-5 text-orange-400" />
+                      <p className="text-sm text-yellow-100">سلسلة الأيام</p>
                     </div>
+                    <p className="text-3xl font-bold">{dailyReward?.currentStreak || 0}</p>
+                    <p className={`text-sm ${streakLevel.color} font-bold`}>{streakLevel.name}</p>
+                  </div>
+                  <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="w-5 h-5 text-green-400" />
+                      <p className="text-sm text-yellow-100">المكافأة التالية</p>
+                    </div>
+                    <p className="text-3xl font-bold">
+                      {Math.min(
+                        (dailyReward?.rewardAmount || 500) + 50,
+                        dailyReward?.maxReward || 1000
+                      )}
+                    </p>
+                    <p className="text-sm text-yellow-100">عملة</p>
                   </div>
                 </div>
               </div>
             </Card>
 
-            {/* Referral Rewards */}
-            <Link href="/mini-app/referrals">
-              <Card className="bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 transition-all">
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                      <Gift className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold mb-1">Referral Bonuses</h4>
-                      <p className="text-sm text-gray-400 mb-2">
-                        Invite friends and earn rewards
-                      </p>
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        View Referrals →
-                      </Button>
-                    </div>
+            {/* Weekly Stats */}
+            <div className="mb-6">
+              <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+                إحصائيات هذا الأسبوع
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="bg-gradient-to-br from-blue-600/30 to-cyan-600/30 border-blue-500/50">
+                  <div className="p-4 text-center">
+                    <p className="text-3xl font-bold mb-1">{weeklyStats.tasksCompleted}</p>
+                    <p className="text-sm text-blue-200">مهمة مكتملة</p>
                   </div>
-                </div>
-              </Card>
-            </Link>
+                </Card>
+                <Card className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 border-purple-500/50">
+                  <div className="p-4 text-center">
+                    <p className="text-3xl font-bold mb-1">{weeklyStats.gamesPlayed}</p>
+                    <p className="text-sm text-purple-200">لعبة ملعوبة</p>
+                  </div>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-600/30 to-emerald-600/30 border-green-500/50">
+                  <div className="p-4 text-center">
+                    <p className="text-3xl font-bold mb-1">{weeklyStats.referralsMade}</p>
+                    <p className="text-sm text-green-200">إحالة جديدة</p>
+                  </div>
+                </Card>
+                <Card className="bg-gradient-to-br from-yellow-600/30 to-orange-600/30 border-yellow-500/50">
+                  <div className="p-4 text-center">
+                    <p className="text-3xl font-bold mb-1">{weeklyStats.totalEarned}</p>
+                    <p className="text-sm text-yellow-200">عملة مكتسبة</p>
+                  </div>
+                </Card>
+              </div>
+            </div>
 
-            {/* Task Rewards */}
-            <Link href="/mini-app/tasks">
-              <Card className="bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 transition-all">
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
-                      <Zap className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold mb-1">Task Rewards</h4>
-                      <p className="text-sm text-gray-400 mb-2">
-                        Complete tasks to earn instant rewards
-                      </p>
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        View Tasks →
-                      </Button>
-                    </div>
+            {/* Reward Tiers */}
+            <div className="mb-6">
+              <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-400" />
+                مستويات المكافآت
+              </h3>
+              
+              <div className="space-y-3">
+                {[
+                  { day: 1, coins: 500, icon: '🎁', label: 'مبتدئ' },
+                  { day: 3, coins: 600, icon: '⭐', label: 'مجتهد' },
+                  { day: 7, coins: 850, icon: '🔥', label: 'متقدم' },
+                  { day: 14, coins: 950, icon: '🏆', label: 'محترف' },
+                  { day: 30, coins: 1000, icon: '👑', label: 'أسطوري' }
+                ].map((tier, index) => {
+                  const isUnlocked = (dailyReward?.currentStreak || 0) >= tier.day;
+                  const isCurrent = (dailyReward?.currentStreak || 0) === tier.day;
+                  
+                  return (
+                    <Card 
+                      key={index}
+                      className={`${
+                        isCurrent
+                          ? 'bg-gradient-to-r from-yellow-600/40 to-orange-600/40 border-yellow-500 scale-105'
+                          : isUnlocked
+                          ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500/50'
+                          : 'bg-white/5 border-white/10'
+                      } backdrop-blur-md transition-all`}
+                    >
+                      <div className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-14 h-14 rounded-full ${
+                            isUnlocked ? 'bg-gradient-to-br from-purple-500 to-blue-500' : 'bg-white/10'
+                          } flex items-center justify-center text-2xl font-bold relative`}>
+                            {isUnlocked ? '✓' : tier.icon}
+                            {isCurrent && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-bold text-lg">{tier.label}</p>
+                            <p className="text-sm text-gray-400">
+                              {tier.day} {tier.day === 1 ? 'يوم' : 'أيام'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {isUnlocked ? '✨ محقق!' : isCurrent ? '⚡ حالي' : '🔒 مغلق'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-3xl font-bold text-yellow-400">{tier.coins}</p>
+                          <p className="text-xs text-gray-400">عملة/يوم</p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* How it Works */}
+            <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/50">
+              <div className="p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <Sparkles className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-bold text-lg mb-3">كيف تعمل المكافآت؟</h3>
+                    <ul className="text-sm text-gray-300 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-400 font-bold">•</span>
+                        <span>احصل على مكافأتك مرة واحدة كل 24 ساعة</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-400 font-bold">•</span>
+                        <span>المكافأة الأساسية: 500 عملة</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-400 font-bold">•</span>
+                        <span>+50 عملة لكل يوم متتالي (سلسلة الأيام)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-400 font-bold">•</span>
+                        <span>الحد الأقصى: 1000 عملة يومياً</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-orange-400 font-bold">⚠️</span>
+                        <span className="text-orange-200">إذا فاتك يوم، تبدأ السلسلة من جديد!</span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
-              </Card>
-            </Link>
-          </div>
-        </div>
+
+                <div className="mt-4 p-3 bg-purple-600/20 rounded-lg border border-purple-500/30">
+                  <p className="text-sm text-center text-purple-200">
+                    💡 <span className="font-bold">نصيحة:</span> افتح البوت يومياً للحفاظ على سلسلتك وزيادة مكافآتك!
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );

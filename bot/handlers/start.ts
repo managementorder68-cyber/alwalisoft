@@ -113,9 +113,10 @@ export async function handleStart(ctx: BotContext) {
     // Send welcome message
     const isArabic = languageCode === 'ar';
     
-    // Get Mini App URL
-    const miniAppUrl = process.env.NEXT_PUBLIC_APP_URL || 
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://your-app.vercel.app');
+    // Get Mini App URL - always point to /mini-app
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    const miniAppUrl = `${baseUrl}/mini-app`;
     
     if (isNewUser) {
       await ctx.reply(

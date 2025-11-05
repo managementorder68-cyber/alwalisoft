@@ -163,14 +163,14 @@ async function main() {
   process.once('SIGINT', () => {
     logger.info('SIGINT received. Stopping bot gracefully...');
     bot.stop('SIGINT');
-    redis.disconnect();
+    if (redis) redis.disconnect();
     prisma.$disconnect();
   });
 
   process.once('SIGTERM', () => {
     logger.info('SIGTERM received. Stopping bot gracefully...');
     bot.stop('SIGTERM');
-    redis.disconnect();
+    if (redis) redis.disconnect();
     prisma.$disconnect();
   });
 

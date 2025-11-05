@@ -150,7 +150,7 @@ async function playTargetHit(ctx: BotContext, userId: string, isArabic: boolean)
       gameType: 'TARGET_HIT',
       status: 'COMPLETED',
       score: hit ? 1 : 0,
-      reward: BigInt(reward),
+      reward: Number(reward),
       completedAt: new Date(),
     },
   });
@@ -159,17 +159,17 @@ async function playTargetHit(ctx: BotContext, userId: string, isArabic: boolean)
     // Award coins
     await ctx.prisma.user.update({
       where: { id: userId },
-      data: { balance: { increment: BigInt(reward) } },
+      data: { balance: { increment: Number(reward) } },
     });
 
     await ctx.prisma.rewardLedger.create({
       data: {
         userId,
         type: 'GAME_WIN',
-        amount: BigInt(reward),
+        amount: Number(reward),
         description: 'Target Hit game win',
-        balanceBefore: BigInt(0),
-        balanceAfter: BigInt(reward),
+        balanceBefore: 0,
+        balanceAfter: Number(reward),
       },
     });
 
@@ -227,7 +227,7 @@ async function playLuckyWheel(ctx: BotContext, userId: string, isArabic: boolean
       gameType: 'LUCKY_WHEEL',
       status: 'COMPLETED',
       score: selectedReward,
-      reward: BigInt(selectedReward),
+      reward: Number(selectedReward),
       completedAt: new Date(),
     },
   });
@@ -235,17 +235,17 @@ async function playLuckyWheel(ctx: BotContext, userId: string, isArabic: boolean
   // Award coins
   await ctx.prisma.user.update({
     where: { id: userId },
-    data: { balance: { increment: BigInt(selectedReward) } },
+    data: { balance: { increment: Number(selectedReward) } },
   });
 
   await ctx.prisma.rewardLedger.create({
     data: {
       userId,
       type: 'GAME_WIN',
-      amount: BigInt(selectedReward),
+      amount: Number(selectedReward),
       description: 'Lucky Wheel game win',
-      balanceBefore: BigInt(0),
-      balanceAfter: BigInt(selectedReward),
+      balanceBefore: 0,
+      balanceAfter: Number(selectedReward),
     },
   });
 

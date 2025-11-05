@@ -371,7 +371,7 @@ async function verifyTaskCompletion(ctx: BotContext, taskId: string) {
       ctx.prisma.user.update({
         where: { id: userId },
         data: {
-          balance: { increment: reward },
+          balance: { increment: Number(reward) },
           tasksCompleted: { increment: 1 },
         },
       }),
@@ -391,10 +391,10 @@ async function verifyTaskCompletion(ctx: BotContext, taskId: string) {
         data: {
           userId,
           type: 'TASK_COMPLETION',
-          amount: reward,
+          amount: Number(reward),
           description: `Completed task: ${task.name}`,
-          balanceBefore: BigInt(0),
-          balanceAfter: reward,
+          balanceBefore: 0,
+          balanceAfter: Number(reward),
         },
       }),
 

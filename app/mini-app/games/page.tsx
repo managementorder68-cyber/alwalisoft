@@ -72,12 +72,10 @@ function GamesContent() {
       name: '🎯 Target Hit',
       description: 'Hit the target to earn coins',
       action: () => {
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-          window.Telegram.WebApp.showAlert('🎯 قريباً! هذه اللعبة قيد التطوير');
-        }
+        window.location.href = '/mini-app/games/target-hit';
       },
       color: 'from-orange-600 to-red-600',
-      comingSoon: true
+      comingSoon: false
     },
     {
       id: 'quiz',

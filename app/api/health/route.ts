@@ -18,15 +18,17 @@ export async function GET() {
       console.error('Database health check failed:', error);
     }
 
-    // Check Redis
+    // Check Redis (optional)
     try {
-      await redis.ping();
-      checks.redis = true;
+      if (redis) {
+        await redis.ping();
+        checks.redis = true;
+      }
     } catch (error) {
       console.error('Redis health check failed:', error);
     }
 
-    const healthy = checks.database && checks.redis;
+    const healthy = checks.database; // Redis is optional
 
     if (healthy) {
       return successResponse(checks, 'All systems operational');

@@ -54,8 +54,8 @@ export async function handleStart(ctx: BotContext) {
           referralCode: `ref_${nanoid(10)}`,
           referredById: referrerId,
           balance: referrerId 
-            ? BigInt(config.referredUserSignupBonus) 
-            : BigInt(2000),
+            ? Number(config.referredUserSignupBonus) 
+            : 2000,
         },
       });
 
@@ -70,7 +70,7 @@ export async function handleStart(ctx: BotContext) {
       await ctx.prisma.wallet.create({
         data: {
           userId: user.id,
-          balance: user.balance,
+          balance: Number(user.balance),
         },
       });
 
@@ -158,7 +158,7 @@ async function processReferralRewards(
 ) {
   try {
     // Level 1: Direct referral
-    const level1Reward = BigInt(config.referralSignupBonus);
+    const level1Reward = Number(config.referralSignupBonus);
     
     // Update referrer balance
     await ctx.prisma.user.update({
@@ -202,7 +202,7 @@ async function processReferralRewards(
         type: 'REFERRAL_BONUS',
         amount: level1Reward,
         description: 'Level 1 referral bonus',
-        balanceBefore: BigInt(0), // Should fetch actual balance
+        balanceBefore: 0, // Should fetch actual balance
         balanceAfter: level1Reward,
       },
     });
@@ -238,11 +238,13 @@ async function processReferralRewards(
 
     if (level1Referrer?.referredById) {
       // Level 2
-      const level2Reward = BigInt(config.referralLevel2Reward);
+      const level2Reward = Number(config.referralLevel2Reward);
       
       await ctx.prisma.user.update({
         where: { id: level1Referrer.referredById },
-        data: { balance: { increment: level2Reward } },
+        data: { 
+          balance: { increment: level2Reward }
+        },
       });
 
       await ctx.prisma.referral.create({
@@ -276,12 +278,14 @@ async function processReferralRewards(
       });
 
       if (level2Referrer?.referredById) {
-        const level3Reward = BigInt(config.referralLevel3Reward);
+        const level3Reward = Number(config.referralLevel3Reward);
         
-        await ctx.prisma.user.update({
-          where: { id: level2Referrer.referredById },
-          data: { balance: { increment: level3Reward } },
-        });
+          await ctx.prisma.user.update({
+            where: { id: level2Referrer.referredById },
+            data: { 
+              balance: { increment: level3Reward }
+            },
+          });
 
         await ctx.prisma.referral.create({
           data: {

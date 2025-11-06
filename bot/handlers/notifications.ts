@@ -25,7 +25,7 @@ export async function sendNotification(
     logger.info(`Notification sent to user ${telegramId}`);
     return true;
   } catch (error: any) {
-    logger.error('Error sending notification:', { error: error.message, telegramId });
+    logger.error({ error: error.message, telegramId }, 'Error sending notification');
     return false;
   }
 }
@@ -97,7 +97,7 @@ export async function sendDailyReminders(ctx: NotificationContext) {
     logger.info(`Daily reminders sent: ${results.sent}/${userIds.length}`);
     return results;
   } catch (error: any) {
-    logger.error('Error sending daily reminders:', error);
+    logger.error({ error: error.message }, 'Error sending daily reminders');
     throw error;
   }
 }
@@ -131,7 +131,7 @@ export async function notifyNewTask(
     logger.info(`New task notifications sent: ${results.sent}/${userIds.length}`);
     return results;
   } catch (error: any) {
-    logger.error('Error notifying new task:', error);
+    logger.error({ error: error.message }, 'Error notifying new task');
     throw error;
   }
 }
@@ -170,7 +170,7 @@ ${reason ? `\n📝 السبب: ${reason}` : ''}
 
     return true;
   } catch (error: any) {
-    logger.error('Error notifying withdrawal status:', error);
+    logger.error({ error: error.message }, 'Error notifying withdrawal status');
     return false;
   }
 }

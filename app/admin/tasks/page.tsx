@@ -71,6 +71,28 @@ export default function AdminTasksPage() {
     }
   };
 
+  const deleteTask = async (taskId: string, taskName: string) => {
+    if (!confirm(`هل أنت متأكد من حذف المهمة "${taskName}"؟\nهذا الإجراء لا يمكن التراجع عنه.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        alert('✅ تم حذف المهمة بنجاح');
+        loadTasks(); // Reload tasks
+      } else {
+        alert('❌ فشل حذف المهمة');
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('❌ حدث خطأ أثناء حذف المهمة');
+    }
+  };
+
   const filteredTasks = tasks.filter(task => {
     const matchesDifficulty = filterDifficulty === 'all' || task.difficulty === filterDifficulty;
     const matchesStatus = filterStatus === 'all' || 
@@ -127,13 +149,14 @@ export default function AdminTasksPage() {
                 </p>
               </div>
             </div>
-            <Button 
-              onClick={() => setShowCreateModal(true)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              مهمة جديدة
-            </Button>
+            <Link href="/admin/tasks/create">
+              <Button 
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                مهمة جديدة
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

@@ -48,45 +48,65 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Check if user exists in database
-      const response = await fetch(`/api/users?telegramId=${telegramUser.id}`);
+      // Try to get user from database
+      let response = await fetch(`/api/users?telegramId=${telegramUser.id}`);
+      let data = await response.json();
       
-      if (response.ok) {
-        const data = await response.json();
+      // If user doesn't exist, create them
+      if (!response.ok || !data.success || !data.data) {
+        // Create new user
+        response = await fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            telegramId: String(telegramUser.id),
+            username: telegramUser.username || `user_${telegramUser.id}`,
+            firstName: telegramUser.first_name,
+            lastName: telegramUser.last_name,
+            languageCode: telegramUser.language_code || 'en',
+          }),
+        });
+
+        data = await response.json();
         
-        if (data.success && data.data) {
-          // User exists, save to localStorage
-          const userData = {
-            id: data.data.id,
-            telegramId: data.data.telegramId,
-            username: data.data.username,
-            firstName: data.data.firstName,
-            lastName: data.data.lastName,
-            balance: data.data.balance,
-            level: data.data.level,
-            referralCode: data.data.referralCode
-          };
-          
-          localStorage.setItem('telegram_user', JSON.stringify(userData));
-          
-          // Success animation
-          if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.showAlert('✅ Login successful!');
-          }
-          
-          // Redirect to main app
-          setTimeout(() => {
-            router.push('/mini-app');
-          }, 500);
-        } else {
-          setError('User not found. Please start the bot first by sending /start');
+        if (!response.ok || !data.success) {
+          setError('Failed to create account. Please try again or contact support.');
+          return;
         }
+      }
+      
+      // User exists or was created successfully
+      if (data.success && data.data) {
+        const userData = {
+          id: data.data.id,
+          telegramId: data.data.telegramId,
+          username: data.data.username,
+          firstName: data.data.firstName,
+          lastName: data.data.lastName,
+          balance: data.data.balance,
+          level: data.data.level,
+          referralCode: data.data.referralCode
+        };
+        
+        localStorage.setItem('telegram_user', JSON.stringify(userData));
+        
+        // Success animation
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert('✅ تم تسجيل الدخول بنجاح!');
+        }
+        
+        // Redirect to main app
+        setTimeout(() => {
+          router.push('/mini-app');
+        }, 500);
       } else {
-        setError('Failed to authenticate. Please try again.');
+        setError('Authentication failed. Please try again.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('An error occurred. Please try again.');
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 import { PrismaClient } from '@prisma/client';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -73,13 +73,7 @@ export async function sendDailyReminders(ctx: NotificationContext) {
 
     const users = await prisma.user.findMany({
       where: {
-        status: 'ACTIVE',
-        transactions: {
-          none: {
-            type: 'DAILY_BONUS',
-            createdAt: { gte: today }
-          }
-        }
+        status: 'ACTIVE'
       },
       select: {
         telegramId: true

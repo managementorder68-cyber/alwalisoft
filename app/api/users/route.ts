@@ -120,14 +120,20 @@ export async function POST(request: NextRequest) {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { telegramId: String(telegramId) },
+      include: {
+        statistics: true,
+        wallet: true,
+      },
     });
 
     if (existingUser) {
+      // User exists - return existing user data (not an error!)
       await prisma.$disconnect();
       return NextResponse.json({
-        success: false,
-        error: 'User already exists'
-      }, { status: 409 });
+        success: true,
+        data: existingUser,
+        message: 'User already exists'
+      }, { status: 200 });
     }
 
     // Find referrer if referral code provided

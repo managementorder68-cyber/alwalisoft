@@ -48,37 +48,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Try to get user from database
+      // Scenario 1: Try to get existing user
       let response = await fetch(`/api/users?telegramId=${telegramUser.id}`);
       let data = await response.json();
       
-      // If user doesn't exist, create them
-      if (!response.ok || !data.success || !data.data) {
-        // Create new user
-        response = await fetch('/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            telegramId: String(telegramUser.id),
-            username: telegramUser.username || `user_${telegramUser.id}`,
-            firstName: telegramUser.first_name,
-            lastName: telegramUser.last_name,
-            languageCode: telegramUser.language_code || 'en',
-          }),
-        });
-
-        data = await response.json();
-        
-        if (!response.ok || !data.success) {
-          setError('Failed to create account. Please try again or contact support.');
-          return;
-        }
-      }
-      
-      // User exists or was created successfully
-      if (data.success && data.data) {
+      // Scenario 2: User exists - login directly
+      if (response.ok && data.success && data.data) {
         const userData = {
           id: data.data.id,
           telegramId: data.data.telegramId,
@@ -92,30 +67,72 @@ export default function LoginPage() {
         
         localStorage.setItem('telegram_user', JSON.stringify(userData));
         
-        // Redirect to main app
+        // Redirect to dashboard
         setTimeout(() => {
           router.push('/mini-app');
         }, 300);
-      } else {
-        // Fallback: Use Telegram data even if API fails
-        const tempUserData = {
-          id: 'temp_' + telegramUser.id,
+        return;
+      }
+      
+      // Scenario 3: User doesn't exist - create new account
+      response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           telegramId: String(telegramUser.id),
           username: telegramUser.username || `user_${telegramUser.id}`,
           firstName: telegramUser.first_name,
-          lastName: telegramUser.last_name || '',
-          balance: 0,
-          level: 'BEGINNER',
-          referralCode: ''
+          lastName: telegramUser.last_name,
+          languageCode: telegramUser.language_code || 'en',
+        }),
+      });
+
+      data = await response.json();
+      
+      // User created successfully
+      if (response.ok && data.success && data.data) {
+        const userData = {
+          id: data.data.id,
+          telegramId: data.data.telegramId,
+          username: data.data.username,
+          firstName: data.data.firstName,
+          lastName: data.data.lastName,
+          balance: data.data.balance,
+          level: data.data.level,
+          referralCode: data.data.referralCode
         };
         
-        localStorage.setItem('telegram_user', JSON.stringify(tempUserData));
+        localStorage.setItem('telegram_user', JSON.stringify(userData));
         
-        // Still redirect - let user see the app
+        // Redirect to dashboard
         setTimeout(() => {
           router.push('/mini-app');
         }, 300);
+        return;
       }
+      
+      // Scenario 4: API failed - use Telegram data as fallback
+      console.warn('API failed, using Telegram data fallback:', data.error || 'Unknown error');
+      
+      const tempUserData = {
+        id: 'temp_' + telegramUser.id,
+        telegramId: String(telegramUser.id),
+        username: telegramUser.username || `user_${telegramUser.id}`,
+        firstName: telegramUser.first_name,
+        lastName: telegramUser.last_name || '',
+        balance: 0,
+        level: 'BEGINNER',
+        referralCode: ''
+      };
+      
+      localStorage.setItem('telegram_user', JSON.stringify(tempUserData));
+      
+      // Still allow access
+      setTimeout(() => {
+        router.push('/mini-app');
+      }, 300);
     } catch (err) {
       console.error('Login error:', err);
       

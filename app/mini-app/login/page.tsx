@@ -2,24 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, LogIn, UserCheck, Shield } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user: authUser, login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [telegramUser, setTelegramUser] = useState<any>(null);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
 
   useEffect(() => {
     // Only run on client-side
     if (typeof window === 'undefined') return;
 
-    // Check if already logged in
-    const storedUser = localStorage.getItem('telegram_user');
-    if (storedUser) {
-      // Use window.location for clean redirect
+    // If already logged in, redirect
+    if (authUser) {
+      console.log('✅ User already logged in, redirecting...');
       window.location.href = '/mini-app';
       return;
     }
@@ -36,28 +38,57 @@ export default function LoginPage() {
       
       // Get user data
       const initData = tg.initDataUnsafe;
+      console.log('📱 Telegram initData:', initData);
+      
       if (initData.user) {
+        console.log('👤 Telegram user found:', initData.user.username || initData.user.first_name);
         setTelegramUser(initData.user);
+        
+        // Auto-login attempt
+        if (!autoLoginAttempted) {
+          setAutoLoginAttempted(true);
+          handleAutoLogin(initData.user);
+        }
+      } else {
+        console.log('⚠️ No Telegram user in initData');
       }
+    } else {
+      console.log('⚠️ Telegram WebApp not available');
     }
-  }, [router]);
+  }, [authUser, autoLoginAttempted]);
+
+  const handleAutoLogin = async (user: any) => {
+    console.log('🤖 Auto-login attempt for:', user.id);
+    await performLogin(user, true);
+  };
 
   const handleLogin = async () => {
+    console.log('👆 Manual login clicked');
     if (!telegramUser) {
       setError('No Telegram user data available. Please open this app from Telegram.');
       return;
     }
+    await performLogin(telegramUser, false);
+  };
 
-    setLoading(true);
-    setError('');
+  const performLogin = async (user: any, isAutoLogin: boolean = false) => {
+    if (!isAutoLogin) {
+      setLoading(true);
+      setError('');
+    }
 
     try {
+      console.log(`🔐 Performing ${isAutoLogin ? 'auto' : 'manual'} login for telegramId:`, user.id);
+      
       // Scenario 1: Try to get existing user
-      let response = await fetch(`/api/users?telegramId=${telegramUser.id}`);
+      let response = await fetch(`/api/users?telegramId=${user.id}`);
       let data = await response.json();
+      
+      console.log('📊 API Response:', data);
       
       // Scenario 2: User exists - login directly
       if (response.ok && data.success && data.data) {
+        console.log('✅ User found in database!');
         const userData = {
           id: data.data.id,
           telegramId: data.data.telegramId,
@@ -69,32 +100,37 @@ export default function LoginPage() {
           referralCode: data.data.referralCode
         };
         
-        localStorage.setItem('telegram_user', JSON.stringify(userData));
+        // Use auth context to login
+        login(userData);
         
+        console.log('🚀 Redirecting to /mini-app...');
         // Redirect immediately with window.location for clean navigation
         window.location.href = '/mini-app';
         return;
       }
       
       // Scenario 3: User doesn't exist - create new account
+      console.log('⚠️ User not found, creating new account...');
       response = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          telegramId: String(telegramUser.id),
-          username: telegramUser.username || `user_${telegramUser.id}`,
-          firstName: telegramUser.first_name,
-          lastName: telegramUser.last_name,
-          languageCode: telegramUser.language_code || 'en',
+          telegramId: String(user.id),
+          username: user.username || `user_${user.id}`,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          languageCode: user.language_code || 'en',
         }),
       });
 
       data = await response.json();
+      console.log('📊 Create User Response:', data);
       
       // User created successfully
       if (response.ok && data.success && data.data) {
+        console.log('✅ User created successfully!');
         const userData = {
           id: data.data.id,
           telegramId: data.data.telegramId,
@@ -106,52 +142,31 @@ export default function LoginPage() {
           referralCode: data.data.referralCode
         };
         
-        localStorage.setItem('telegram_user', JSON.stringify(userData));
+        // Use auth context to login
+        login(userData);
         
+        console.log('🚀 Redirecting to /mini-app...');
         // Redirect immediately with window.location for clean navigation
         window.location.href = '/mini-app';
         return;
       }
       
-      // Scenario 4: API failed - use Telegram data as fallback
-      console.warn('API failed, using Telegram data fallback:', data.error || 'Unknown error');
+      // Scenario 4: API failed
+      console.error('❌ API failed:', data.error || 'Unknown error');
       
-      const tempUserData = {
-        id: 'temp_' + telegramUser.id,
-        telegramId: String(telegramUser.id),
-        username: telegramUser.username || `user_${telegramUser.id}`,
-        firstName: telegramUser.first_name,
-        lastName: telegramUser.last_name || '',
-        balance: 0,
-        level: 'BEGINNER',
-        referralCode: ''
-      };
-      
-      localStorage.setItem('telegram_user', JSON.stringify(tempUserData));
-      
-      // Still allow access - redirect immediately
-      window.location.href = '/mini-app';
+      if (!isAutoLogin) {
+        setError(`Failed to ${response.status === 404 ? 'find or create' : 'login'} user. Please try again.`);
+      }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('❌ Login error:', err);
       
-      // Even on error, allow access with Telegram data
-      const tempUserData = {
-        id: 'temp_' + telegramUser.id,
-        telegramId: String(telegramUser.id),
-        username: telegramUser.username || `user_${telegramUser.id}`,
-        firstName: telegramUser.first_name,
-        lastName: telegramUser.last_name || '',
-        balance: 0,
-        level: 'BEGINNER',
-        referralCode: ''
-      };
-      
-      localStorage.setItem('telegram_user', JSON.stringify(tempUserData));
-      
-      // Redirect anyway - better UX - use window.location
-      window.location.href = '/mini-app';
+      if (!isAutoLogin) {
+        setError('Network error. Please check your connection and try again.');
+      }
     } finally {
-      setLoading(false);
+      if (!isAutoLogin) {
+        setLoading(false);
+      }
     }
   };
 

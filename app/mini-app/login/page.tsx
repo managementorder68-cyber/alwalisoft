@@ -189,12 +189,12 @@ export default function LoginPage() {
                   {loading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Logging in...
+                      جارٍ تسجيل الدخول...
                     </>
                   ) : (
                     <>
                       <LogIn className="w-5 h-5 mr-2" />
-                      Login with Telegram
+                      تسجيل الدخول عبر تليجرام
                     </>
                   )}
                 </Button>
@@ -209,18 +209,18 @@ export default function LoginPage() {
                 {/* Info */}
                 <div className="mt-6 pt-6 border-t border-white/10">
                   <div className="space-y-2 text-sm text-gray-400">
-                    <p>✓ Secure Telegram authentication</p>
-                    <p>✓ Your data is safe and encrypted</p>
-                    <p>✓ No password required</p>
+                    <p>✓ مصادقة آمنة عبر تليجرام</p>
+                    <p>✓ بياناتك آمنة ومشفرة</p>
+                    <p>✓ لا حاجة لكلمة مرور</p>
                   </div>
                 </div>
               </>
             ) : (
               <div className="text-center py-8">
                 <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-purple-400" />
-                <p className="text-gray-400">Loading Telegram data...</p>
+                <p className="text-gray-400">جارٍ تحميل بيانات تليجرام...</p>
                 <p className="text-sm text-gray-500 mt-2">
-                  Please make sure you opened this app from Telegram
+                  تأكد من فتح التطبيق من داخل تليجرام
                 </p>
               </div>
             )}
@@ -229,7 +229,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center mt-6 text-sm text-gray-500">
-          <p>By logging in, you agree to our Terms of Service</p>
+          <p>بتسجيل الدخول، أنت توافق على شروط الخدمة</p>
         </div>
       </div>
     </div>

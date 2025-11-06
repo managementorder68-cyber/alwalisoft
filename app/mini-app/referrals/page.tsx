@@ -59,7 +59,7 @@ function ReferralsContent() {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(referralLink);
       if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.showAlert('Link copied! 📋');
+        window.Telegram.WebApp.showAlert('تم نسخ الرابط! 📋');
       }
     }
   };
@@ -67,7 +67,7 @@ function ReferralsContent() {
   const shareReferralLink = () => {
     const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'your_bot';
     const referralLink = `https://t.me/${botUsername}?start=${authUser?.referralCode || 'ref_code'}`;
-    const shareText = `🎁 Join me and earn rewards!\n\n💰 Get bonus coins when you sign up using my referral link!\n\n${referralLink}`;
+    const shareText = `🎁 انضم إلينا واربح المكافآت!\n\n💰 احصل على نقاط إضافية باستخدام رابط الدعوة!\n\n${referralLink}`;
     
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`);
@@ -85,8 +85,8 @@ function ReferralsContent() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Referrals</h1>
-            <p className="text-sm text-purple-300">Invite friends & earn rewards</p>
+            <h1 className="text-2xl font-bold">الإحالات</h1>
+            <p className="text-sm text-purple-300">ادعُ أصدقاءك واكسب المكافآت</p>
           </div>
         </div>
       </div>

@@ -184,18 +184,85 @@ function AchievementsContent() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [achievementsData, setAchievementsData] = useState(achievements);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, fetch user's achievement progress from API
-    if (user) {
-      // Mock data - replace with real API call
-      setAchievementsData(achievements.map(ach => ({
-        ...ach,
-        progress: Math.random() * ach.target,
-        unlocked: Math.random() > 0.7
-      })));
-    }
+    loadUserProgress();
   }, [user]);
+
+  const loadUserProgress = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      // جلب إحصائيات المستخدم من API
+      const response = await fetch(`/api/users/stats?telegramId=${user.telegramId}&_t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // تحديث التقدم بناءً على البيانات الحقيقية
+          const stats = data.data;
+          const balance = user.balance || 0;
+          
+          const updatedAchievements = achievements.map(ach => {
+            let progress = 0;
+            let unlocked = false;
+            
+            // حساب التقدم بناءً على نوع الإنجاز
+            switch (ach.id) {
+              case 'first_steps':
+              case 'task_master_10':
+              case 'task_master_50':
+                progress = stats.tasksCompleted || 0;
+                break;
+              case 'rich_1k':
+              case 'rich_10k':
+              case 'rich_100k':
+                progress = balance;
+                break;
+              case 'referrer_5':
+              case 'referrer_20':
+              case 'referrer_50':
+                progress = stats.referralsCount || 0;
+                break;
+              case 'streak_7':
+              case 'streak_30':
+                progress = stats.currentStreak || 0;
+                break;
+              case 'gamer':
+              case 'quiz_master':
+              case 'lucky':
+                progress = stats.gamesPlayed || 0;
+                break;
+              default:
+                progress = 0;
+            }
+            
+            unlocked = progress >= ach.target;
+            
+            return {
+              ...ach,
+              progress: Math.min(progress, ach.target),
+              unlocked
+            };
+          });
+          
+          setAchievementsData(updatedAchievements);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading achievements:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = ['all', 'المهام', 'الأرصدة', 'الإحالات', 'النشاط', 'الألعاب'];
   

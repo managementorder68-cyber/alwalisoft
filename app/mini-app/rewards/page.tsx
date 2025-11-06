@@ -60,14 +60,27 @@ function RewardsContent() {
   };
 
   const loadWeeklyStats = async () => {
+    if (!user) return;
+    
     try {
-      // Simulated weekly stats - في الإنتاج، يتم جلبها من الـ API
-      setWeeklyStats({
-        tasksCompleted: 12,
-        gamesPlayed: 8,
-        referralsMade: 3,
-        totalEarned: 4500
+      // جلب الإحصائيات من API
+      const response = await fetch(`/api/users/stats?telegramId=${user.telegramId}&_t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
       });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setWeeklyStats({
+            tasksCompleted: data.data.tasksCompleted || 0,
+            gamesPlayed: data.data.gamesPlayed || 0,
+            referralsMade: data.data.referralsCount || 0,
+            totalEarned: data.data.totalEarned || 0
+          });
+        }
+      }
     } catch (error) {
       console.error('Error loading weekly stats:', error);
     }

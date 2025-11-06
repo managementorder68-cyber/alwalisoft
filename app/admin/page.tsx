@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Users, Target, Coins, TrendingUp, Plus, Settings,
-  Bell, CheckCircle, XCircle, Clock, Eye
+  Bell, CheckCircle, XCircle, Clock, Eye, Send
 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -115,40 +116,48 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <Button
-            onClick={() => setActiveTab('overview')}
-            className={`${activeTab === 'overview' ? 'bg-purple-600' : 'bg-white/10'} hover:bg-purple-700`}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            نظرة عامة
-          </Button>
-          <Button
-            onClick={() => setActiveTab('tasks')}
-            className={`${activeTab === 'tasks' ? 'bg-purple-600' : 'bg-white/10'} hover:bg-purple-700`}
-          >
-            <Target className="w-4 h-4 mr-2" />
-            إدارة المهام
-          </Button>
-          <Button
-            onClick={() => setActiveTab('users')}
-            className={`${activeTab === 'users' ? 'bg-purple-600' : 'bg-white/10'} hover:bg-purple-700`}
-          >
-            <Users className="w-4 h-4 mr-2" />
-            المستخدمون
-          </Button>
-          <Button
-            onClick={() => setActiveTab('notifications')}
-            className={`${activeTab === 'notifications' ? 'bg-purple-600' : 'bg-white/10'} hover:bg-purple-700`}
-          >
-            <Bell className="w-4 h-4 mr-2" />
-            الإشعارات
-          </Button>
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Link href="/admin/users">
+            <Card className="bg-gradient-to-br from-blue-600 to-blue-800 border-0 hover:scale-105 transition-transform cursor-pointer">
+              <div className="p-6 text-center">
+                <Users className="w-10 h-10 mx-auto mb-3 text-blue-200" />
+                <h3 className="font-bold text-lg">المستخدمون</h3>
+                <p className="text-sm text-blue-200 mt-1">{stats.totalUsers} مستخدم</p>
+              </div>
+            </Card>
+          </Link>
+
+          <Link href="/admin/tasks">
+            <Card className="bg-gradient-to-br from-green-600 to-green-800 border-0 hover:scale-105 transition-transform cursor-pointer">
+              <div className="p-6 text-center">
+                <Target className="w-10 h-10 mx-auto mb-3 text-green-200" />
+                <h3 className="font-bold text-lg">المهام</h3>
+                <p className="text-sm text-green-200 mt-1">{stats.activeTasks} مهمة نشطة</p>
+              </div>
+            </Card>
+          </Link>
+
+          <Link href="/admin/withdrawals">
+            <Card className="bg-gradient-to-br from-red-600 to-red-800 border-0 hover:scale-105 transition-transform cursor-pointer">
+              <div className="p-6 text-center">
+                <Clock className="w-10 h-10 mx-auto mb-3 text-red-200" />
+                <h3 className="font-bold text-lg">طلبات السحب</h3>
+                <p className="text-sm text-red-200 mt-1">{stats.pendingWithdrawals} معلق</p>
+              </div>
+            </Card>
+          </Link>
+
+          <Card className="bg-gradient-to-br from-purple-600 to-purple-800 border-0 hover:scale-105 transition-transform cursor-pointer">
+            <div className="p-6 text-center">
+              <Bell className="w-10 h-10 mx-auto mb-3 text-purple-200" />
+              <h3 className="font-bold text-lg">الإشعارات</h3>
+              <p className="text-sm text-purple-200 mt-1">إرسال</p>
+            </div>
+          </Card>
         </div>
 
-        {/* Content Area */}
-        {activeTab === 'overview' && (
+        {/* Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-white/5 backdrop-blur-md border-white/10">
               <div className="p-6">
@@ -209,52 +218,6 @@ export default function AdminDashboard() {
               </div>
             </Card>
           </div>
-        )}
-
-        {activeTab === 'tasks' && (
-          <Card className="bg-white/5 backdrop-blur-md border-white/10">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold">إدارة المهام</h3>
-                <Button className="bg-green-600 hover:bg-green-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  إضافة مهمة جديدة
-                </Button>
-              </div>
-              <p className="text-gray-400 text-center py-12">
-                قريباً: واجهة إدارة المهام الكاملة
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {activeTab === 'users' && (
-          <Card className="bg-white/5 backdrop-blur-md border-white/10">
-            <div className="p-6">
-              <h3 className="text-xl font-bold mb-6">إدارة المستخدمين</h3>
-              <p className="text-gray-400 text-center py-12">
-                قريباً: قائمة المستخدمين والإحصائيات
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {activeTab === 'notifications' && (
-          <Card className="bg-white/5 backdrop-blur-md border-white/10">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold">إرسال إشعار</h3>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Bell className="w-4 h-4 mr-2" />
-                  إرسال إلى الجميع
-                </Button>
-              </div>
-              <p className="text-gray-400 text-center py-12">
-                قريباً: نظام الإشعارات الجماعية
-              </p>
-            </div>
-          </Card>
-        )}
       </div>
     </div>
   );

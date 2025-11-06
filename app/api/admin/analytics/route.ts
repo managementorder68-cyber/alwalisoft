@@ -105,13 +105,13 @@ export async function GET(req: NextRequest) {
         }
       });
 
-      const revenueData = await prisma.transaction.aggregate({
+      const revenueData = await prisma.rewardLedger.aggregate({
         where: {
           createdAt: {
             gte: date,
             lt: nextDate
           },
-          type: { in: ['TASK_REWARD', 'REFERRAL_REWARD', 'GAME_REWARD'] }
+          type: { in: ['TASK_COMPLETION', 'REFERRAL_BONUS', 'GAME_WIN'] }
         },
         _sum: { amount: true }
       });

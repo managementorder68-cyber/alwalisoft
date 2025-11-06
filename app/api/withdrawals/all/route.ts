@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     const withdrawals = await prisma.withdrawal.findMany({
       orderBy: {
-        createdAt: 'desc'
+        requestedAt: 'desc'
       },
       take: 100,
       include: {

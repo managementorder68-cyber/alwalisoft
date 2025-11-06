@@ -65,18 +65,27 @@ export async function GET(request: NextRequest) {
     });
 
     // Get top referrers
-    const topReferrers = await prisma.referralTree.findMany({
+    const topReferrerTrees = await prisma.referralTree.findMany({
       take: 10,
       orderBy: { totalReferralEarnings: 'desc' },
-      include: {
-        user: {
+    });
+
+    // Fetch user details for top referrers
+    const topReferrers = await Promise.all(
+      topReferrerTrees.map(async (tree) => {
+        const user = await prisma.user.findUnique({
+          where: { id: tree.userId },
           select: {
             username: true,
             firstName: true,
           },
-        },
-      },
-    });
+        });
+        return {
+          ...tree,
+          user,
+        };
+      })
+    );
 
     await prisma.$disconnect();
 

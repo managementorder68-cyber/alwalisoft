@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await prisma.rewardLedger.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit

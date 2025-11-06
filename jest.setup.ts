@@ -4,7 +4,7 @@
 jest.setTimeout(30000);
 
 // Mock environment variables for tests
-process.env.NODE_ENV = 'test';
+// Note: NODE_ENV is read-only, so we skip it
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';
 process.env.REDIS_URL = 'redis://localhost:6379/1';
 process.env.JWT_SECRET = 'test-jwt-secret';

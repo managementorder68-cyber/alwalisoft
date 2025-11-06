@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
     prisma = new PrismaClient();
 
     const user = await prisma.user.findUnique({
-      where: { telegramId: String(userId) }
+      where: { telegramId: String(userId) },
+      include: { statistics: true }
     });
 
     if (!user) {
@@ -32,23 +33,25 @@ export async function GET(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check last daily claim
+    // Check last daily claim from DailyBonus
     const now = new Date();
-    const lastClaim = user.lastDailyReward;
-    let canClaim = true;
-    let streak = user.dailyStreak || 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const lastBonus = await prisma.dailyBonus.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    if (lastClaim) {
-      const hoursSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60);
+    let canClaim = true;
+    let streak = user.statistics?.currentStreak || 0;
+
+    if (lastBonus && lastBonus.claimedAt) {
+      const hoursSinceLastClaim = (now.getTime() - lastBonus.claimedAt.getTime()) / (1000 * 60 * 60);
       
       // Can only claim once per day (24 hours)
       if (hoursSinceLastClaim < 24) {
         canClaim = false;
-      }
-      
-      // Reset streak if more than 48 hours passed
-      if (hoursSinceLastClaim > 48) {
-        streak = 0;
       }
     }
 
@@ -59,12 +62,12 @@ export async function GET(req: NextRequest) {
       data: {
         canClaim,
         streak,
-        lastClaim
+        lastClaim: lastBonus?.claimedAt
       }
     });
   } catch (error) {
     console.error('Error checking daily reward:', error);
-    await prisma.$disconnect();
+    if (prisma) await prisma.$disconnect();
     
     return NextResponse.json({
       success: false,
@@ -89,7 +92,8 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      include: { statistics: true }
     });
 
     if (!user) {
@@ -102,10 +106,13 @@ export async function POST(req: NextRequest) {
 
     // Check if can claim
     const now = new Date();
-    const lastClaim = user.lastDailyReward;
+    const lastBonus = await prisma.dailyBonus.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
+    });
     
-    if (lastClaim) {
-      const hoursSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60);
+    if (lastBonus && lastBonus.claimedAt) {
+      const hoursSinceLastClaim = (now.getTime() - lastBonus.claimedAt.getTime()) / (1000 * 60 * 60);
       
       if (hoursSinceLastClaim < 24) {
         await prisma.$disconnect();
@@ -117,9 +124,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate streak and reward
-    let newStreak = (user.dailyStreak || 0) + 1;
-    if (lastClaim) {
-      const hoursSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60);
+    let newStreak = (user.statistics?.currentStreak || 0) + 1;
+    if (lastBonus && lastBonus.claimedAt) {
+      const hoursSinceLastClaim = (now.getTime() - lastBonus.claimedAt.getTime()) / (1000 * 60 * 60);
       if (hoursSinceLastClaim > 48) {
         newStreak = 1; // Reset streak
       }
@@ -130,23 +137,48 @@ export async function POST(req: NextRequest) {
     const rewardIndex = Math.min(newStreak - 1, rewards.length - 1);
     const reward = rewards[rewardIndex];
 
-    // Update user
+    // Update user balance
     await prisma.user.update({
       where: { id: userId },
       data: {
-        balance: user.balance + reward,
-        dailyStreak: newStreak,
-        lastDailyReward: now
+        balance: { increment: reward }
       }
     });
 
-    // Create transaction
-    await prisma.transaction.create({
+    // Update statistics
+    await prisma.userStatistics.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        currentStreak: newStreak,
+        longestStreak: newStreak
+      },
+      update: {
+        currentStreak: newStreak,
+        longestStreak: Math.max(newStreak, user.statistics?.longestStreak || 0)
+      }
+    });
+
+    // Create daily bonus record
+    await prisma.dailyBonus.create({
+      data: {
+        userId: user.id,
+        day: newStreak,
+        reward,
+        claimed: true,
+        claimedAt: now
+      }
+    });
+
+    // Create reward ledger entry
+    await prisma.rewardLedger.create({
       data: {
         userId,
         type: 'DAILY_BONUS',
         amount: reward,
-        description: `Daily reward - Day ${newStreak}`
+        description: `Daily reward - Day ${newStreak}`,
+        balanceBefore: user.balance,
+        balanceAfter: user.balance + reward
       }
     });
 

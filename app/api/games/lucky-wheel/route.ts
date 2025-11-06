@@ -36,10 +36,10 @@ export async function POST(req: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const todayPlays = await prisma.transaction.count({
+    const todayPlays = await prisma.rewardLedger.count({
       where: {
         userId: user.id,
-        type: 'GAME_REWARD',
+        type: 'GAME_WIN',
         description: { contains: 'Lucky Wheel' },
         createdAt: { gte: today }
       }
@@ -64,13 +64,15 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Create transaction record
-    await prisma.transaction.create({
+    // Create reward ledger record
+    await prisma.rewardLedger.create({
       data: {
         userId: user.id,
-        type: 'GAME_REWARD',
+        type: 'GAME_WIN',
         amount: reward,
-        description: `Lucky Wheel reward: ${reward} coins`
+        description: `Lucky Wheel reward: ${reward} coins`,
+        balanceBefore: user.balance,
+        balanceAfter: user.balance + reward
       }
     });
 

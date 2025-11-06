@@ -87,7 +87,7 @@ export async function handleStart(ctx: BotContext) {
       }
 
       logger.info(`New user registered: ${telegramId} (${username})`);
-    } else {
+    } else if (user) {
       // Update existing user
       await ctx.prisma.user.update({
         where: { id: user.id },
@@ -98,6 +98,12 @@ export async function handleStart(ctx: BotContext) {
           lastName: lastName || user.lastName,
         },
       });
+    }
+
+    // Ensure user is defined before creating session
+    if (!user) {
+      logger.error('User not found after registration attempt');
+      return;
     }
 
     // Create session

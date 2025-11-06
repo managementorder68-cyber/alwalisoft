@@ -29,7 +29,7 @@ export function verifyTelegramInitData(initData: string, botToken: string): Tele
 
     // Create HMAC
     const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest()
-    const computedHash = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex")
+    const computedHash = crypto.createHmac("sha256", secretKey as crypto.BinaryLike).update(dataCheckString).digest("hex")
 
     // Compare hashes
     if (computedHash !== hash) {

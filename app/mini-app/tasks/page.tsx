@@ -29,38 +29,74 @@ function TasksContent() {
 
   const loadTasks = async () => {
     try {
-      const response = await fetch('/api/tasks?active=true&limit=20');
+      const userId = user?.id;
+      const url = userId 
+        ? `/api/tasks?active=true&limit=20&userId=${userId}`
+        : '/api/tasks?active=true&limit=20';
+        
+      console.log('🔍 Loading tasks from:', url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📦 Tasks loaded:', data);
+        
         if (data.success) {
-          setTasks(data.data.tasks || []);
+          setTasks(data.data.tasks || data.data || []);
         }
+      } else {
+        console.error('❌ Failed to load tasks:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error loading tasks:', error);
+      console.error('❌ Error loading tasks:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const completeTask = async (taskId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.error('❌ No user found');
+      return;
+    }
     
     try {
+      console.log('📤 Completing task:', taskId, 'for user:', user.id);
+      
       const response = await fetch(`/api/tasks/${taskId}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.telegramId })
+        body: JSON.stringify({ 
+          userId: user.id,  // Use database user ID
+          verified: false 
+        })
       });
       
-      if (response.ok) {
+      const data = await response.json();
+      console.log('📦 Task completion response:', data);
+      
+      if (response.ok && data.success) {
         if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-          window.Telegram.WebApp.showAlert('تم إكمال المهمة! ✅');
+          window.Telegram.WebApp.showAlert(`✅ تم إكمال المهمة!\n🪙 ربحت ${data.data.rewardAmount} عملة`);
         }
         loadTasks(); // Reload tasks
+      } else {
+        const errorMsg = data.error || 'فشل إكمال المهمة';
+        console.error('❌ Task completion failed:', errorMsg);
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert(`❌ ${errorMsg}`);
+        }
       }
     } catch (error) {
-      console.error('Error completing task:', error);
+      console.error('❌ Error completing task:', error);
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert('❌ حدث خطأ. حاول مرة أخرى.');
+      }
     }
   };
 

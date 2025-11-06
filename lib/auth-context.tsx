@@ -31,14 +31,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem('telegram_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('telegram_user');
+    // Check if user is logged in (only on client-side)
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('telegram_user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (error) {
+          console.error('Error parsing stored user:', error);
+          localStorage.removeItem('telegram_user');
+        }
       }
     }
     setLoading(false);
@@ -46,12 +48,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('telegram_user', JSON.stringify(userData));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('telegram_user', JSON.stringify(userData));
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('telegram_user');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('telegram_user');
+    }
     router.push('/mini-app/login');
   };
 
@@ -59,7 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       const updatedUser = { ...user, balance: newBalance };
       setUser(updatedUser);
-      localStorage.setItem('telegram_user', JSON.stringify(updatedUser));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('telegram_user', JSON.stringify(updatedUser));
+      }
     }
   };
 

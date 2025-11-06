@@ -18,8 +18,13 @@ export async function initializeServices(): Promise<Services> {
       log: config.isDevelopment ? ['query', 'error', 'warn'] : ['error'],
     });
 
-    await prisma.$connect();
-    logger.info('Connected to PostgreSQL via Prisma');
+    try {
+      await prisma.$connect();
+      logger.info('✅ Connected to database via Prisma');
+    } catch (error: any) {
+      logger.error({ err: error }, '❌ Failed to connect to database');
+      throw error;
+    }
   }
 
   // Initialize Redis (optional)

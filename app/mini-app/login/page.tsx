@@ -13,6 +13,9 @@ export default function LoginPage() {
   const [telegramUser, setTelegramUser] = useState<any>(null);
 
   useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') return;
+
     // Check if already logged in
     const storedUser = localStorage.getItem('telegram_user');
     if (storedUser) {
@@ -22,7 +25,7 @@ export default function LoginPage() {
     }
 
     // Initialize Telegram Web App
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+    if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
       tg.ready();
       tg.expand();

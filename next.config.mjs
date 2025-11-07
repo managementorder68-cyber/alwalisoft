@@ -2,18 +2,30 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Skip static export for context providers
-  output: undefined,
+  // Use standalone output for production
+  output: 'standalone',
   
-  // Disable static optimization to always generate fresh pages
+  // Disable static page generation
+  distDir: '.next',
+  
+  // Disable static page generation
   generateBuildId: async () => {
     return `build-${Date.now()}`;
   },
   
-  // Experimental features for Next.js 16
+  // Disable optimizations that cause prerendering issues
+  optimizeFonts: false,
+  swcMinify: true,
+  
+  // Configure for dynamic rendering
   experimental: {
-    // Configuration for Next.js 16
+    // Disable problematic features
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
+  
+  // Disable static exports
+  skipTrailingSlashRedirect: false,
+  skipMiddlewareUrlNormalize: false,
 
   // Headers to prevent caching
   async headers() {
@@ -36,6 +48,19 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  
+  // Webpack config to handle context providers
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
   },
 };
 

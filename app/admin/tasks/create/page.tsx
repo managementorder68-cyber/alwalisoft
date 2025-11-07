@@ -193,9 +193,9 @@ export default function CreateTaskPage() {
                       className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:border-purple-500"
                     >
                       <option value="BEGINNER">مبتدئ</option>
-                      <option value="INTERMEDIATE">متوسط</option>
-                      <option value="ADVANCED">متقدم</option>
+                      <option value="PROFESSIONAL">محترف</option>
                       <option value="EXPERT">خبير</option>
+                      <option value="VIP">VIP</option>
                     </select>
                   </div>
                 </div>

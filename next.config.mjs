@@ -2,9 +2,17 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Skip static export for context providers
+  output: undefined,
+  
   // Disable static optimization to always generate fresh pages
   generateBuildId: async () => {
     return `build-${Date.now()}`;
+  },
+  
+  // Experimental features for Next.js 16
+  experimental: {
+    // Configuration for Next.js 16
   },
 
   // Headers to prevent caching

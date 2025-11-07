@@ -1,20 +1,11 @@
-'use client';
+import { ClientProviders } from './client-providers';
 
-import { AuthProvider } from '@/lib/auth-context';
-import Script from 'next/script';
+export const dynamic = 'force-dynamic';
 
 export default function MiniAppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <AuthProvider>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
-      {children}
-    </AuthProvider>
-  );
+  return <ClientProviders>{children}</ClientProviders>;
 }

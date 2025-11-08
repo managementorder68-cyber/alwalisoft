@@ -16,6 +16,7 @@ function GamesContent() {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [stats, setStats] = useState({ playsToday: 0, bestReward: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
   
   useEffect(() => {
     if (user?.id) {
@@ -24,6 +25,7 @@ function GamesContent() {
   }, [user]);
   
   const loadStats = async () => {
+    setLoadingStats(true);
     try {
       const response = await fetch(`/api/games/stats?userId=${user?.id}`);
       if (response.ok) {
@@ -34,6 +36,8 @@ function GamesContent() {
       }
     } catch (error) {
       console.error('Error loading game stats:', error);
+    } finally {
+      setLoadingStats(false);
     }
   };
 
@@ -238,11 +242,19 @@ function GamesContent() {
                 <div className="mt-4 pt-4 border-t border-white/10 flex justify-around text-center text-sm">
                   <div>
                     <p className="text-gray-400 mb-1">Plays Today</p>
-                    <p className="font-bold">{stats.playsToday}</p>
+                    {loadingStats ? (
+                      <div className="animate-pulse bg-white/10 h-5 w-8 rounded mx-auto"></div>
+                    ) : (
+                      <p className="font-bold">{stats.playsToday}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-gray-400 mb-1">Best Reward</p>
-                    <p className="font-bold">{stats.bestReward.toLocaleString()}</p>
+                    {loadingStats ? (
+                      <div className="animate-pulse bg-white/10 h-5 w-12 rounded mx-auto"></div>
+                    ) : (
+                      <p className="font-bold">{stats.bestReward.toLocaleString()}</p>
+                    )}
                   </div>
                 </div>
               </div>

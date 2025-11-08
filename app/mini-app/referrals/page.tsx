@@ -13,6 +13,7 @@ import { ProtectedRoute } from '@/components/protected-route';
 function ReferralsContent() {
   const { user: authUser } = useAuth();
   const [referrals, setReferrals] = useState([]);
+  const [userData, setUserData] = useState<any>(null);
   const [stats, setStats] = useState({
     total: 0,
     level1: 0,
@@ -20,22 +21,51 @@ function ReferralsContent() {
     level3: 0,
     totalEarnings: 0
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authUser) {
-      loadReferralData(authUser.telegramId);
+    if (authUser?.telegramId) {
+      loadAllData();
     }
   }, [authUser]);
 
-  const loadReferralData = async (telegramId: string) => {
+  const loadAllData = async () => {
+    if (!authUser) return;
+    
+    setLoading(true);
     try {
-      // Load user data for referral code
-      // User data is already available from authUser
+      // 1. جلب بيانات المستخدم الكاملة
+      console.log('🔄 Loading user data for telegramId:', authUser.telegramId);
+      const userResponse = await fetch(`/api/users?telegramId=${authUser.telegramId}`);
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        if (userData.success && userData.data) {
+          console.log('✅ User data loaded:', userData.data);
+          setUserData(userData.data);
+          
+          // 2. جلب إحصائيات الإحالات باستخدام userId الصحيح
+          await loadReferralStats(userData.data.id);
+        } else {
+          console.error('❌ User data invalid:', userData);
+        }
+      } else {
+        console.error('❌ Failed to load user data:', userResponse.status);
+      }
+    } catch (error) {
+      console.error('❌ Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Load referral stats
-      const statsResponse = await fetch(`/api/referrals?userId=${telegramId}`);
+  const loadReferralStats = async (userId: string) => {
+    try {
+      console.log('🔄 Loading referral stats for userId:', userId);
+      const statsResponse = await fetch(`/api/referrals?userId=${userId}`);
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
+        console.log('📊 Referral stats loaded:', statsData);
+        
         if (statsData.success) {
           setReferrals(statsData.data.referrals || []);
           if (statsData.data.tree) {
@@ -48,15 +78,20 @@ function ReferralsContent() {
             });
           }
         }
+      } else {
+        console.error('❌ Failed to load referral stats:', statsResponse.status);
       }
     } catch (error) {
-      console.error('Error loading referral data:', error);
+      console.error('❌ Error loading referral stats:', error);
     }
   };
 
   const copyReferralLink = () => {
     const botUsername = 'makeittooeasy_bot';
-    const referralLink = `https://t.me/${botUsername}?start=${authUser?.referralCode || 'ref_code'}`;
+    const referralCode = userData?.referralCode || authUser?.referralCode || 'ref_code';
+    const referralLink = `https://t.me/${botUsername}?start=${referralCode}`;
+    
+    console.log('📋 Copying referral link:', referralLink);
     
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(referralLink);
@@ -70,8 +105,11 @@ function ReferralsContent() {
 
   const shareReferralLink = () => {
     const botUsername = 'makeittooeasy_bot';
-    const referralLink = `https://t.me/${botUsername}?start=${authUser?.referralCode || 'ref_code'}`;
+    const referralCode = userData?.referralCode || authUser?.referralCode || 'ref_code';
+    const referralLink = `https://t.me/${botUsername}?start=${referralCode}`;
     const shareText = `🎁 انضم إلينا واربح المكافآت!\n\n💰 احصل على نقاط إضافية باستخدام رابط الدعوة!\n\n${referralLink}`;
+    
+    console.log('🔗 Sharing referral link:', referralLink);
     
     if (typeof window !== 'undefined') {
       if (window.Telegram?.WebApp) {
@@ -81,6 +119,17 @@ function ReferralsContent() {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg font-bold">جارٍ تحميل بيانات الإحالات...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white">
@@ -137,7 +186,7 @@ function ReferralsContent() {
           <div className="p-5">
             <h3 className="font-bold text-lg mb-3">رابط الإحالة الخاص بك</h3>
             <div className="bg-black/30 rounded-lg p-3 mb-3 font-mono text-sm break-all">
-              {authUser?.referralCode ? `t.me/makeittooeasy_bot?start=${authUser.referralCode}` : 'جاري التحميل...'}
+              {userData?.referralCode ? `t.me/makeittooeasy_bot?start=${userData.referralCode}` : (authUser?.referralCode ? `t.me/makeittooeasy_bot?start=${authUser.referralCode}` : 'جاري التحميل...')}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Button

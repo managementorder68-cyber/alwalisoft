@@ -229,11 +229,27 @@ function TasksContent() {
         console.error('❌ Task completion failed:', errorMsg);
         console.error('❌ Full error data:', data);
         
+        // بناء رسالة خطأ مفصلة
+        let fullMessage = `❌ ${errorMsg}`;
+        
+        // إضافة تفاصيل إضافية إن وجدت
+        if (data.data) {
+          if (data.data.currentCount !== undefined && data.data.required !== undefined) {
+            fullMessage += `\n\n📊 حالياً: ${data.data.currentCount}\n🎯 مطلوب: ${data.data.required}`;
+          }
+          if (data.data.currentBalance !== undefined && data.data.required !== undefined) {
+            fullMessage += `\n\n💰 رصيدك: ${data.data.currentBalance.toLocaleString()}\n🎯 مطلوب: ${data.data.required.toLocaleString()}`;
+          }
+          if (data.data.missingFields && data.data.missingFields.length > 0) {
+            fullMessage += `\n\n📝 يجب إكمال: ${data.data.missingFields.join(', ')}`;
+          }
+        }
+        
         if (typeof window !== 'undefined') {
           if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.showAlert(`❌ ${errorMsg}`);
+            window.Telegram.WebApp.showAlert(fullMessage);
           } else {
-            alert(`❌ ${errorMsg}`);
+            alert(fullMessage);
           }
         }
       }

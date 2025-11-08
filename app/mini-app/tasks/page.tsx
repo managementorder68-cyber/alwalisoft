@@ -30,6 +30,7 @@ function TasksContent() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completingTask, setCompletingTask] = useState<string | null>(null);
 
   useEffect(() => {
     loadTasks();
@@ -157,6 +158,14 @@ function TasksContent() {
       return;
     }
     
+    // منع النقر المتعدد
+    if (completingTask === taskId) {
+      console.log('⚠️ Task already being completed, ignoring click');
+      return;
+    }
+    
+    setCompletingTask(taskId);
+    
     let userId = user.id;
     console.log('   userId from context:', userId);
     console.log('   telegramId:', user.telegramId);
@@ -204,9 +213,19 @@ function TasksContent() {
       
       if (response.ok && data.success) {
         const reward = data.data?.rewardAmount || data.data?.reward || 0;
-        console.log('✅✅✅ Task completed! Reward:', reward);
+        const alreadyCompleted = data.alreadyCompleted || false;
         
-        const message = `✅ تم إكمال المهمة!\n🪙 ربحت ${reward.toLocaleString()} عملة`;
+        console.log('✅✅✅ Task completed! Reward:', reward);
+        console.log('   Already completed:', alreadyCompleted);
+        
+        let message = '';
+        if (alreadyCompleted) {
+          message = '⚠️ تم إكمال هذه المهمة مسبقاً';
+        } else if (reward > 0) {
+          message = `✅ تم إكمال المهمة!\n🪙 ربحت ${reward.toLocaleString()} عملة`;
+        } else {
+          message = '✅ تم إكمال المهمة!';
+        }
         
         if (typeof window !== 'undefined') {
           if (window.Telegram?.WebApp) {
@@ -216,6 +235,8 @@ function TasksContent() {
           }
         }
         
+        // إعادة تحميل المهام فوراً
+        console.log('🔄 Reloading tasks...');
         setTimeout(() => loadTasks(), 500);
       } else {
         const errorMsg = data.error || data.message || 'فشل';
@@ -250,6 +271,9 @@ function TasksContent() {
       });
       
       alert('❌ حدث خطأ. تحقق من Console (F12)');
+    } finally {
+      // إلغاء حالة التحميل
+      setCompletingTask(null);
     }
     
     console.log('━'.repeat(50));
@@ -336,10 +360,20 @@ function TasksContent() {
 
                       <Button 
                         onClick={() => startTask(task)}
-                        className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-500 hover:via-blue-500 hover:to-purple-500 transition-all duration-300 shadow-lg hover:shadow-purple-500/50 text-white font-bold py-6 text-base"
+                        disabled={completingTask === task.id}
+                        className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-500 hover:via-blue-500 hover:to-purple-500 transition-all duration-300 shadow-lg hover:shadow-purple-500/50 text-white font-bold py-6 text-base disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Target className="w-5 h-5 mr-2" />
-                        ابدأ المهمة الآن
+                        {completingTask === task.id ? (
+                          <>
+                            <Clock className="w-5 h-5 mr-2 animate-spin" />
+                            جارٍ الإكمال...
+                          </>
+                        ) : (
+                          <>
+                            <Target className="w-5 h-5 mr-2" />
+                            ابدأ المهمة الآن
+                          </>
+                        )}
                       </Button>
                     </div>
                   </Card>

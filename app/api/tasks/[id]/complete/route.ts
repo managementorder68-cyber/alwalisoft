@@ -75,11 +75,22 @@ export async function POST(
     });
 
     if (existingCompletion) {
+      console.log('⚠️ Task already completed - returning success with zero reward');
       await prisma.$disconnect();
       return NextResponse.json({
-        success: false,
-        error: 'Task already completed'
-      }, { status: 409 });
+        success: true,
+        message: 'تم إكمال هذه المهمة مسبقاً',
+        alreadyCompleted: true,
+        data: {
+          rewardAmount: 0,
+          newBalance: user.balance,
+          task: {
+            id: taskId,
+            name: task.name,
+            isCompleted: true
+          }
+        }
+      }, { status: 200 });
     }
 
     // التحقق من المهمة باستخدام نظام التحقق الشامل

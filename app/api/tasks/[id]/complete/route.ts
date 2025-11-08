@@ -105,10 +105,16 @@ export async function POST(
         },
       });
 
-      // Update wallet
-      await tx.wallet.update({
+      // Update or create wallet (upsert)
+      await tx.wallet.upsert({
         where: { userId },
-        data: {
+        create: {
+          userId,
+          balance: reward,
+          totalEarned: reward,
+          totalWithdrawn: 0
+        },
+        update: {
           balance: { increment: reward },
           totalEarned: { increment: reward },
         },
@@ -126,10 +132,20 @@ export async function POST(
         },
       });
 
-      // Update statistics
-      await tx.userStatistics.update({
+      // Update or create statistics (upsert)
+      await tx.userStatistics.upsert({
         where: { userId },
-        data: {
+        create: {
+          userId,
+          dailyEarnings: reward,
+          weeklyEarnings: reward,
+          monthlyEarnings: reward,
+          totalEarnings: reward,
+          lastTaskCompletedAt: new Date(),
+          currentStreak: 0,
+          longestStreak: 0
+        },
+        update: {
           dailyEarnings: { increment: reward },
           weeklyEarnings: { increment: reward },
           monthlyEarnings: { increment: reward },

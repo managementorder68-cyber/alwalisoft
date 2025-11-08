@@ -317,17 +317,17 @@ function TasksContent() {
                 </div>
 
                 {task.isCompleted ? (
-                  <Button 
-                    disabled 
-                    className="w-full bg-green-600/50 cursor-not-allowed"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    مكتملة
-                  </Button>
+                  <div className="w-full">
+                    <div className="bg-green-500/20 border-2 border-green-500 rounded-lg p-3 text-center">
+                      <CheckCircle className="w-6 h-6 mx-auto mb-2 text-green-400" />
+                      <p className="text-green-400 font-bold">✅ تم الإنجاز بنجاح</p>
+                      <p className="text-xs text-green-300 mt-1">لقد ربحت {task.reward.toLocaleString()} عملة</p>
+                    </div>
+                  </div>
                 ) : (
                   <Button 
                     onClick={() => startTask(task)}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-purple-500/50"
                   >
                     <Target className="w-4 h-4 mr-2" />
                     ابدأ المهمة

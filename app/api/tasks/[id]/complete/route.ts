@@ -64,6 +64,7 @@ export async function POST(
     
     console.log('✅ Task:', task.name);
     console.log('✅ User:', user.username);
+    console.log('📱 Telegram ID:', user.telegramId);
 
     // Check if already completed
     const existingCompletion = await prisma.taskCompletion.findFirst({
@@ -79,6 +80,31 @@ export async function POST(
         success: false,
         error: 'Task already completed'
       }, { status: 409 });
+    }
+
+    // التحقق من المهمة باستخدام نظام التحقق الشامل
+    try {
+      const { verifyTaskCompletion } = await import('@/lib/task-verification-engine');
+      const verificationResult = await verifyTaskCompletion(
+        userId,
+        user.telegramId,
+        task
+      );
+
+      console.log('🔍 Verification result:', verificationResult);
+
+      if (!verificationResult.verified) {
+        await prisma.$disconnect();
+        return NextResponse.json({
+          success: false,
+          error: verificationResult.message || 'لم تستوف شروط المهمة',
+          verified: false,
+          data: verificationResult.data
+        }, { status: 400 });
+      }
+    } catch (verificationError) {
+      console.error('⚠️ Verification error:', verificationError);
+      // نستمر في الإكمال حتى لو فشل التحقق (fallback)
     }
 
     // Complete task and award coins (now Int, not BigInt)

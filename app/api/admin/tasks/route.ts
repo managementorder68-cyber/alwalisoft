@@ -13,31 +13,49 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       name,
-      title,
       description,
       reward,
+      bonusReward,
       difficulty,
       category,
       type,
-      actionUrl,
-      verificationData
+      isActive,
+      verificationData,
+      channelUsername,
+      groupId,
+      postUrl,
+      videoUrl
     } = body;
     
-    if (!title || !description || !reward) {
-      throw new ApiException('Required fields missing', 400, 'MISSING_FIELDS');
+    console.log('📥 Creating task with data:', body);
+    
+    if (!name || !description || !reward) {
+      throw new ApiException('Required fields missing: name, description, reward', 400, 'MISSING_FIELDS');
     }
     
+    const taskData: any = {
+      name,
+      description,
+      reward: parseInt(reward),
+      bonusReward: bonusReward ? parseInt(bonusReward) : 0,
+      difficulty: difficulty || 'EASY',
+      category: category || 'CHANNEL_SUBSCRIPTION',
+      type: type || 'ONE_TIME',
+      isActive: isActive !== undefined ? isActive : true,
+      verificationData: verificationData || null,
+      channelUsername: channelUsername || null,
+      groupId: groupId || null,
+      postUrl: postUrl || null,
+      videoUrl: videoUrl || null
+    };
+    
+    console.log('💾 Creating task:', taskData);
+    
     const task = await prisma.task.create({
-      data: {
-        name: name || title || 'New Task',
-        description,
-        reward: parseInt(reward),
-        difficulty: difficulty || 'MEDIUM',
-        category: category || 'SOCIAL',
-        type: type || 'SOCIAL_FOLLOW',
-        isActive: true
-      }
+      data: taskData
     });
+    
+    console.log('✅ Task created:', task.id);
     
     return NextResponse.json({
       success: true,
@@ -46,6 +64,7 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error) {
+    console.error('❌ Error creating task:', error);
     return handleApiError(error);
   }
 }

@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user with all related records
-    const user = await prisma.$transaction(async (tx) => {
+    const user = await prisma.$transaction(async (tx: any) => {
       // Create user
       const newUser = await tx.user.create({
         data: {
@@ -184,28 +184,81 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      console.log('✅ User created:', newUser.id);
+
       // Create statistics
-      await tx.userStatistics.create({
-        data: {
-          userId: newUser.id,
-        },
-      });
+      try {
+        await tx.userStatistics.create({
+          data: {
+            userId: newUser.id,
+            dailyEarnings: 0,
+            weeklyEarnings: 0,
+            monthlyEarnings: 0,
+            totalEarnings: 0,
+            currentStreak: 0,
+            longestStreak: 0
+          },
+        });
+        console.log('✅ Statistics created');
+      } catch (statsError) {
+        console.error('❌ Error creating statistics:', statsError);
+        // نحاول upsert بدلاً من ذلك
+        await tx.userStatistics.upsert({
+          where: { userId: newUser.id },
+          create: {
+            userId: newUser.id,
+            dailyEarnings: 0,
+            weeklyEarnings: 0,
+            monthlyEarnings: 0,
+            totalEarnings: 0,
+            currentStreak: 0,
+            longestStreak: 0
+          },
+          update: {}
+        });
+      }
 
       // Create wallet
-      await tx.wallet.create({
-        data: {
-          userId: newUser.id,
-          balance: newUser.balance,
-        },
-      });
+      try {
+        await tx.wallet.create({
+          data: {
+            userId: newUser.id,
+            balance: newUser.balance,
+            totalEarned: newUser.balance,
+            totalWithdrawn: 0
+          },
+        });
+        console.log('✅ Wallet created');
+      } catch (walletError) {
+        console.error('❌ Error creating wallet:', walletError);
+        // نحاول upsert بدلاً من ذلك
+        await tx.wallet.upsert({
+          where: { userId: newUser.id },
+          create: {
+            userId: newUser.id,
+            balance: newUser.balance,
+            totalEarned: newUser.balance,
+            totalWithdrawn: 0
+          },
+          update: {}
+        });
+      }
 
       // Create settings
-      await tx.userSettings.create({
-        data: {
-          userId: newUser.id,
-          language: languageCode || 'en',
-        },
-      });
+      try {
+        await tx.userSettings.create({
+          data: {
+            userId: newUser.id,
+            language: languageCode || 'en',
+            notificationsEnabled: true,
+            soundEnabled: true,
+            darkMode: true
+          },
+        });
+        console.log('✅ Settings created');
+      } catch (settingsError) {
+        console.error('❌ Error creating settings:', settingsError);
+      }
 
       // Process referral rewards if applicable
       if (referrerId) {

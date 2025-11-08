@@ -66,19 +66,33 @@ export async function handleStart(ctx: BotContext) {
         },
       });
 
-      // Create user statistics
-      await ctx.prisma.userStatistics.create({
-        data: {
+      // Create or update user statistics (upsert to prevent duplicates)
+      await ctx.prisma.userStatistics.upsert({
+        where: { userId: user.id },
+        create: {
           userId: user.id,
+          dailyEarnings: 0,
+          weeklyEarnings: 0,
+          monthlyEarnings: 0,
+          totalEarnings: 0,
+          currentStreak: 0,
+          longestStreak: 0
         },
+        update: {} // لا نحدث شيء إذا كانت موجودة
       });
 
-      // Create wallet
-      await ctx.prisma.wallet.create({
-        data: {
+      // Create or update wallet (upsert to prevent duplicates)
+      await ctx.prisma.wallet.upsert({
+        where: { userId: user.id },
+        create: {
           userId: user.id,
           balance: Number(user.balance),
+          totalEarned: Number(user.balance),
+          totalWithdrawn: 0
         },
+        update: {
+          balance: Number(user.balance) // تحديث الرصيد إذا كانت موجودة
+        }
       });
 
       // Process referral rewards using the new system

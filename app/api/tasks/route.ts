@@ -13,9 +13,12 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
     const active = searchParams.get('active');
     const level = searchParams.get('level');
+    const userId = searchParams.get('userId');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    console.log('📋 GET /api/tasks - userId:', userId);
 
     const where: any = {};
     
@@ -47,12 +50,40 @@ export async function GET(request: NextRequest) {
       prisma.task.count({ where }),
     ]);
 
+    // إضافة حالة isCompleted لكل مهمة
+    let tasksWithCompletion = tasks;
+    
+    if (userId) {
+      console.log('🔍 Checking completion status for userId:', userId);
+      
+      // جلب جميع المهام المكتملة للمستخدم
+      const completedTasks = await prisma.taskCompletion.findMany({
+        where: { userId },
+        select: { taskId: true }
+      });
+      
+      const completedTaskIds = new Set(completedTasks.map(tc => tc.taskId));
+      console.log('✅ Completed task IDs:', Array.from(completedTaskIds));
+      
+      // إضافة isCompleted لكل مهمة
+      tasksWithCompletion = tasks.map(task => ({
+        ...task,
+        isCompleted: completedTaskIds.has(task.id)
+      })) as any;
+      
+      console.log('📊 Tasks with completion:', tasksWithCompletion.map((t: any) => ({ 
+        id: t.id, 
+        name: t.name, 
+        isCompleted: t.isCompleted 
+      })));
+    }
+
     await prisma.$disconnect();
 
     return NextResponse.json({
       success: true,
       data: {
-        tasks,
+        tasks: tasksWithCompletion,
         pagination: {
           page,
           limit,

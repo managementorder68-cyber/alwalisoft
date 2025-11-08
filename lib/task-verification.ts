@@ -71,10 +71,14 @@ export async function verifyTelegramChannel(
       `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=@${channelUsername}&user_id=${userId}`
     );
     
-    const data = await response.json();
+    const data = await response.json() as {
+      ok: boolean;
+      result?: { status: string };
+      description?: string;
+    };
     
     if (data.ok) {
-      const status = data.result.status;
+      const status = data.result?.status || '';
       const validStatuses = ['member', 'administrator', 'creator'];
       
       if (validStatuses.includes(status)) {

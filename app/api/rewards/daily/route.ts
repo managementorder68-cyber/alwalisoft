@@ -182,6 +182,37 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // إرسال إشعار
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: 'REWARD_RECEIVED',
+          title: '🎁 مكافأة يومية!',
+          message: `حصلت على ${reward.toLocaleString()} عملة! سلسلتك الحالية: ${newStreak} ${newStreak === 1 ? 'يوم' : 'أيام'}.`,
+          data: JSON.stringify({
+            reward,
+            streak: newStreak,
+            type: 'DAILY_BONUS'
+          })
+        }
+      });
+    } catch (notifError) {
+      console.error('Error creating notification:', notifError);
+    }
+
+    // توزيع عمولات الإحالة
+    try {
+      const { distributeReferralCommissions } = await import('@/lib/referral-system');
+      await distributeReferralCommissions(
+        userId,
+        reward,
+        `Daily Bonus - Day ${newStreak}`
+      );
+    } catch (commissionError) {
+      console.error('Error distributing commissions:', commissionError);
+    }
+
     await prisma.$disconnect();
 
     return NextResponse.json({

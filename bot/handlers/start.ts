@@ -81,9 +81,18 @@ export async function handleStart(ctx: BotContext) {
         },
       });
 
-      // Process referral rewards
-      if (referrerId) {
-        await processReferralRewards(ctx, referrerId, user.id);
+      // Process referral rewards using the new system
+      if (referrerId && user.referralCode) {
+        // استخدام النظام الجديد للإحالات
+        try {
+          const { processNewReferral } = await import('../../lib/referral-system');
+          await processNewReferral(referrerId, user.id, user.referralCode);
+          logger.info(`Processed new referral: ${user.id} referred by ${referrerId}`);
+        } catch (refError) {
+          logger.error({ err: refError }, 'Error processing referral with new system');
+          // Fallback to old system
+          await processReferralRewards(ctx, referrerId, user.id);
+        }
       }
 
       logger.info(`New user registered: ${telegramId} (${username})`);

@@ -131,6 +131,39 @@ export async function POST(
       };
     });
 
+    // إرسال إشعار للمستخدم
+    try {
+      await prisma.notification.create({
+        data: {
+          userId,
+          type: 'REWARD_RECEIVED',
+          title: '✅ مهمة مكتملة!',
+          message: `تم إكمال مهمة "${task.name}" وحصلت على ${result.reward.toLocaleString()} عملة.`,
+          data: JSON.stringify({
+            taskId,
+            taskName: task.name,
+            reward: result.reward
+          })
+        }
+      });
+    } catch (notifError) {
+      console.error('Error creating notification:', notifError);
+      // لا نفشل الطلب إذا فشل الإشعار
+    }
+
+    // توزيع عمولات الإحالة
+    try {
+      const { distributeReferralCommissions } = await import('@/lib/referral-system');
+      await distributeReferralCommissions(
+        userId,
+        result.reward,
+        `Task: ${task.name}`
+      );
+    } catch (commissionError) {
+      console.error('Error distributing commissions:', commissionError);
+      // لا نفشل الطلب إذا فشل توزيع العمولات
+    }
+
     await prisma.$disconnect();
 
     return NextResponse.json({

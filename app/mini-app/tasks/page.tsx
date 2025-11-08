@@ -105,14 +105,45 @@ function TasksContent() {
       return;
     }
     
-    console.log('✅ Completing task:', taskId, 'for user:', user.id);
+    // جلب userId الصحيح من API
+    let userId = user.id;
+    if (!userId && user.telegramId) {
+      console.log('🔄 Getting userId from telegramId:', user.telegramId);
+      try {
+        const userResponse = await fetch(`/api/users?telegramId=${user.telegramId}`);
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.success && userData.data?.id) {
+            userId = userData.data.id;
+            console.log('✅ Got userId:', userId);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Failed to get userId:', error);
+      }
+    }
+    
+    if (!userId) {
+      console.error('❌ No valid userId found');
+      const errorMsg = '❌ فشل التحقق من المستخدم، الرجاء إعادة تسجيل الدخول';
+      if (typeof window !== 'undefined') {
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert(errorMsg);
+        } else {
+          alert(errorMsg);
+        }
+      }
+      return;
+    }
+    
+    console.log('✅ Completing task:', taskId, 'for userId:', userId);
     
     try {
       const response = await fetch(`/api/tasks/${taskId}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          userId: user.id,
+          userId: userId,
           verified: false 
         })
       });

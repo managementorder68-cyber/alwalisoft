@@ -42,21 +42,38 @@ function RewardsContent() {
   const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
-    loadDailyReward();
-    loadWeeklyStats();
-  }, []);
+    if (user?.telegramId) {
+      loadDailyReward();
+      loadWeeklyStats();
+    }
+  }, [user]);
 
   const loadDailyReward = async () => {
+    if (!user?.telegramId) {
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const response = await fetch('/api/rewards/daily');
+      console.log('🔄 Loading daily reward for user:', user.telegramId);
+      const response = await fetch(`/api/rewards/daily?userId=${user.telegramId}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setDailyReward(data.data);
+        console.log('📊 Daily reward data:', data);
+        if (data.success && data.data) {
+          setDailyReward({
+            canClaim: data.data.canClaim || false,
+            nextClaimTime: data.data.lastClaim,
+            currentStreak: data.data.streak || 0,
+            rewardAmount: data.data.streak ? [100, 150, 200, 300, 500, 750, 1000][Math.min(data.data.streak - 1, 6)] : 100,
+            maxReward: 1000
+          });
         }
+      } else {
+        console.error('❌ Failed to load daily reward:', response.status);
       }
     } catch (error) {
-      console.error('Error loading daily reward:', error);
+      console.error('❌ Error loading daily reward:', error);
     } finally {
       setLoading(false);
     }
@@ -90,32 +107,71 @@ function RewardsContent() {
   };
 
   const claimDailyReward = async () => {
+    if (!user?.id && !user?.telegramId) {
+      alert('❌ الرجاء تسجيل الدخول أولاً');
+      return;
+    }
+    
     setClaiming(true);
     try {
+      // جلب userId الصحيح
+      let userId = user.id;
+      if (!userId && user.telegramId) {
+        console.log('🔄 Getting userId from telegramId:', user.telegramId);
+        const userResponse = await fetch(`/api/users?telegramId=${user.telegramId}`);
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.success && userData.data?.id) {
+            userId = userData.data.id;
+          }
+        }
+      }
+      
+      if (!userId) {
+        alert('❌ فشل التحقق من المستخدم');
+        setClaiming(false);
+        return;
+      }
+      
+      console.log('🎁 Claiming daily reward for userId:', userId);
       const response = await fetch('/api/rewards/daily', {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
       });
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Claim response:', data);
         if (data.success) {
-          // Show success with confetti effect
-          if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.showAlert(`🎉 تهانينا!\nحصلت على ${data.data.amount} عملة!`);
-          }
+          const reward = data.data?.reward || data.data?.rewardAmount || 0;
+          const newStreak = data.data?.newStreak || data.data?.streak || 0;
           
-          // Refresh data
-          await refreshUser();
+          if (refreshUser) {
+            await refreshUser();
+          }
           await loadDailyReward();
+          
+          const message = `🎉 تم استلام المكافأة اليومية!\n💰 حصلت على ${reward.toLocaleString()} عملة\n🔥 سلسلة: ${newStreak} ${newStreak === 1 ? 'يوم' : 'أيام'}`;
+          
+          if (typeof window !== 'undefined') {
+            if (window.Telegram?.WebApp) {
+              window.Telegram.WebApp.showAlert(message);
+            } else {
+              alert(message);
+            }
+          }
+        } else {
+          const errorMsg = data.message || 'فشل استلام المكافأة';
+          alert(`❌ ${errorMsg}`);
         }
       } else {
         const errorData = await response.json();
-        if (window.Telegram?.WebApp) {
-          window.Telegram.WebApp.showAlert(errorData.error || 'فشل في الحصول على المكافأة');
-        }
+        alert(`❌ ${errorData.message || 'حدث خطأ'}`);
       }
     } catch (error) {
-      console.error('Error claiming reward:', error);
+      console.error('❌ Error claiming reward:', error);
+      alert('❌ حدث خطأ أثناء استلام المكافأة');
       if (window.Telegram?.WebApp) {
         window.Telegram.WebApp.showAlert('حدث خطأ. حاول مرة أخرى.');
       }

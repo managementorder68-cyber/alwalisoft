@@ -299,14 +299,36 @@ function WalletContent() {
               </Card>
             </Link>
 
-            <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+            <Card 
+              className="bg-white/5 border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.showAlert('💳 طرق الدفع المتاحة:\n\n• TON Wallet\n• USDT (TRC20)\n• USDT (ERC20)\n• Bitcoin');
+                  } else {
+                    alert('💳 طرق الدفع المتاحة:\n\n• TON Wallet\n• USDT (TRC20)\n• USDT (ERC20)\n• Bitcoin');
+                  }
+                }
+              }}
+            >
               <div className="p-4 text-center">
                 <CreditCard className="w-6 h-6 mx-auto mb-2 text-blue-400" />
                 <p className="text-xs font-bold">طرق الدفع</p>
               </div>
             </Card>
 
-            <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+            <Card 
+              className="bg-white/5 border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.showAlert('💱 أسعار التحويل:\n\n• 1,000,000 عملة = 1 USDT\n• 10,000 عملة (الحد الأدنى للسحب) = 0.01 USDT\n\n📊 الأسعار محدثة يومياً');
+                  } else {
+                    alert('💱 أسعار التحويل:\n\n• 1,000,000 عملة = 1 USDT\n• 10,000 عملة (الحد الأدنى للسحب) = 0.01 USDT\n\n📊 الأسعار محدثة يومياً');
+                  }
+                }
+              }}
+            >
               <div className="p-4 text-center">
                 <DollarSign className="w-6 h-6 mx-auto mb-2 text-green-400" />
                 <p className="text-xs font-bold">الأسعار</p>

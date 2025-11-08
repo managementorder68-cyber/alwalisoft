@@ -130,19 +130,37 @@ export default function HelpPage() {
       <div className="px-6 py-6 pb-24">
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <Card className="bg-gradient-to-br from-blue-600 to-cyan-600 border-0">
+          <Card 
+            className="bg-gradient-to-br from-blue-600 to-cyan-600 border-0 cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+                window.Telegram.WebApp.openTelegramLink('https://t.me/makeittooeasy_bot');
+              } else if (typeof window !== 'undefined') {
+                window.open('https://t.me/makeittooeasy_bot', '_blank');
+              }
+            }}
+          >
             <div className="p-4 text-center">
               <MessageCircle className="w-8 h-8 mx-auto mb-2" />
               <p className="text-sm font-bold">دردشة مباشرة</p>
-              <p className="text-xs opacity-80 mt-1">قريباً</p>
+              <p className="text-xs opacity-80 mt-1">مع البوت</p>
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-600 to-pink-600 border-0">
+          <Card 
+            className="bg-gradient-to-br from-purple-600 to-pink-600 border-0 cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+                window.Telegram.WebApp.openTelegramLink('https://t.me/makeittooeasy_bot');
+              } else if (typeof window !== 'undefined') {
+                window.open('https://t.me/makeittooeasy_bot', '_blank');
+              }
+            }}
+          >
             <div className="p-4 text-center">
               <Mail className="w-8 h-8 mx-auto mb-2" />
               <p className="text-sm font-bold">راسلنا</p>
-              <p className="text-xs opacity-80 mt-1">support@bot.com</p>
+              <p className="text-xs opacity-80 mt-1">عبر البوت</p>
             </div>
           </Card>
         </div>

@@ -289,53 +289,111 @@ function TasksContent() {
       </div>
 
       {/* Tasks List */}
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {tasks.length === 0 ? (
           <Card className="bg-white/5 backdrop-blur-md border-white/10 p-12 text-center">
             <Target className="w-16 h-16 mx-auto mb-4 text-gray-600" />
             <p className="text-gray-400">لا توجد مهام متاحة حالياً</p>
           </Card>
         ) : (
-          tasks.map((task) => (
-            <Card key={task.id} className="bg-white/5 backdrop-blur-md border-white/10 hover:bg-white/10 transition-all">
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-1">{task.name}</h3>
-                    <p className="text-sm text-gray-400 mb-3">{task.description}</p>
-                    
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="flex items-center gap-1 bg-yellow-500/20 px-3 py-1 rounded-full">
-                        <Coins className="w-4 h-4 text-yellow-400" />
-                        <span className="font-bold text-yellow-400">{task.reward.toLocaleString()}</span>
-                      </div>
-                      <span className="text-xs text-gray-500 bg-purple-500/20 px-2 py-1 rounded">
-                        {task.category}
-                      </span>
-                    </div>
-                  </div>
+          <>
+            {/* Available Tasks */}
+            {tasks.filter(task => !task.isCompleted).length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="bg-gradient-to-r from-purple-600 to-blue-600 w-1 h-6 rounded-full"></div>
+                  <h2 className="text-xl font-bold">المهام المتاحة</h2>
+                  <span className="bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full text-sm">
+                    {tasks.filter(task => !task.isCompleted).length}
+                  </span>
                 </div>
-
-                {task.isCompleted ? (
-                  <div className="w-full">
-                    <div className="bg-green-500/20 border-2 border-green-500 rounded-lg p-3 text-center">
-                      <CheckCircle className="w-6 h-6 mx-auto mb-2 text-green-400" />
-                      <p className="text-green-400 font-bold">✅ تم الإنجاز بنجاح</p>
-                      <p className="text-xs text-green-300 mt-1">لقد ربحت {task.reward.toLocaleString()} عملة</p>
-                    </div>
-                  </div>
-                ) : (
-                  <Button 
-                    onClick={() => startTask(task)}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-purple-500/50"
+                
+                {tasks.filter(task => !task.isCompleted).map((task) => (
+                  <Card 
+                    key={task.id} 
+                    className="bg-gradient-to-br from-purple-900/40 via-blue-900/40 to-purple-900/40 backdrop-blur-md border-purple-500/30 hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
                   >
-                    <Target className="w-4 h-4 mr-2" />
-                    ابدأ المهمة
-                  </Button>
-                )}
+                    <div className="p-5">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="bg-gradient-to-br from-purple-600 to-blue-600 p-3 rounded-xl">
+                          <Target className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold mb-1 text-white">{task.name}</h3>
+                          <p className="text-sm text-gray-300">{task.description}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-1.5 bg-yellow-500/30 border border-yellow-500/50 px-3 py-1.5 rounded-full">
+                          <Coins className="w-5 h-5 text-yellow-400" />
+                          <span className="font-bold text-yellow-400 text-lg">{task.reward.toLocaleString()}</span>
+                        </div>
+                        <span className="text-xs text-purple-300 bg-purple-500/30 border border-purple-500/40 px-3 py-1 rounded-full">
+                          {task.category}
+                        </span>
+                      </div>
+
+                      <Button 
+                        onClick={() => startTask(task)}
+                        className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-500 hover:via-blue-500 hover:to-purple-500 transition-all duration-300 shadow-lg hover:shadow-purple-500/50 text-white font-bold py-6 text-base"
+                      >
+                        <Target className="w-5 h-5 mr-2" />
+                        ابدأ المهمة الآن
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </Card>
-          ))
+            )}
+
+            {/* Completed Tasks */}
+            {tasks.filter(task => task.isCompleted).length > 0 && (
+              <div className="space-y-3 mt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="bg-gradient-to-r from-green-600 to-emerald-600 w-1 h-6 rounded-full"></div>
+                  <h2 className="text-xl font-bold text-green-400">المهام المكتملة</h2>
+                  <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded-full text-sm">
+                    {tasks.filter(task => task.isCompleted).length}
+                  </span>
+                </div>
+                
+                {tasks.filter(task => task.isCompleted).map((task) => (
+                  <Card 
+                    key={task.id} 
+                    className="bg-gradient-to-br from-green-900/20 via-emerald-900/20 to-green-900/20 backdrop-blur-md border-green-500/30 opacity-75"
+                  >
+                    <div className="p-5">
+                      <div className="flex items-start gap-4 mb-3">
+                        <div className="bg-green-600/30 border-2 border-green-500 p-3 rounded-xl">
+                          <CheckCircle className="w-6 h-6 text-green-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-base font-bold text-green-100">{task.name}</h3>
+                            <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full">
+                              ✓ مكتمل
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-300/70 line-through">{task.description}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Coins className="w-5 h-5 text-green-400" />
+                          <span className="text-green-400 font-bold">
+                            +{task.reward.toLocaleString()} عملة
+                          </span>
+                        </div>
+                        <p className="text-xs text-green-300/70 mt-1">تم إضافتها لحسابك</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

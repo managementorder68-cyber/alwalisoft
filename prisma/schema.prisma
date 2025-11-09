@@ -666,6 +666,7 @@ model AdWatch {
   userId              String              @map("user_id")
   user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   adType              AdType              @map("ad_type")
+  platform            String              @default("ADMOB") // ADMOB, UNITY, APPLOVIN, FACEBOOK, TELEGRAM
   adUnitId            String?             @map("ad_unit_id")
   reward              Int                 @default(0)
   completed           Boolean             @default(false)
@@ -673,6 +674,7 @@ model AdWatch {
   
   @@index([userId, adType])
   @@index([watchedAt])
+  @@index([platform])
   @@map("ad_watches")
 }
 

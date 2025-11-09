@@ -1,29 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleApiError, ApiException } from '@/lib/error-handler';
 import { adManager } from '@/lib/ad-manager';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-/**
- * GET /api/ads/stats?userId=xxx
- * جلب إحصائيات الإعلانات للمستخدم
- */
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get('userId');
-    
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
     if (!userId) {
-      throw new ApiException('User ID is required', 400, 'MISSING_USER_ID');
+      return NextResponse.json({
+        success: false,
+        error: 'Missing userId'
+      }, { status: 400 });
     }
-    
+
+    // الحصول على إحصائيات المستخدم
     const stats = await adManager.getUserAdStats(userId);
     
+    // الحد الأقصى اليومي (من المتغيرات البيئية أو القيمة الافتراضية)
+    const dailyLimit = parseInt(process.env.NEXT_PUBLIC_AD_DAILY_LIMIT || '10');
+    
+    // حساب المتبقي اليوم
+    const remainingToday = Math.max(0, dailyLimit - stats.todayCount);
+
     return NextResponse.json({
       success: true,
-      data: stats
+      data: {
+        ...stats,
+        dailyLimit,
+        remainingToday
+      }
     });
-    
   } catch (error) {
-    return handleApiError(error);
+    console.error('Error getting ad stats:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }

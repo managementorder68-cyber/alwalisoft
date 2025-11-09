@@ -58,8 +58,12 @@ function AdsContent() {
   const [adStartTime, setAdStartTime] = useState<number>(0);
 
   useEffect(() => {
-    loadStats();
-    loadAdTasks();
+    if (user?.id) {
+      console.log('📊 Loading ads data for user:', user.id);
+      loadStats();
+      loadAdTasks();
+    }
+    // Always check for special events (not user-specific)
     checkSpecialEvents();
   }, [user]);
 
@@ -100,8 +104,21 @@ function AdsContent() {
       const response = await fetch('/api/ads/events');
       const data = await response.json();
       
-      if (data.success && data.data?.active) {
-        setSpecialEvent(data.data);
+      console.log('🎉 Special events response:', data);
+      
+      if (data.success && data.data) {
+        if (data.data.active) {
+          console.log('✅ Active event found:', data.data);
+          setSpecialEvent({
+            active: true,
+            name: data.data.name,
+            multiplier: data.data.multiplier,
+            endsAt: data.data.endsAt ? new Date(data.data.endsAt) : undefined
+          });
+        } else {
+          console.log('ℹ️ No active events');
+          setSpecialEvent({ active: false, name: '', multiplier: 1 });
+        }
       }
     } catch (error) {
       console.error('Error loading events:', error);

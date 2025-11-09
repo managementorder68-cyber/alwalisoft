@@ -75,17 +75,33 @@ export async function GET(request: NextRequest) {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
+    // Get Trust Score
+    let trustScore = 100;
+    try {
+      const { adVerification } = await import('@/lib/ad-verification');
+      trustScore = await (adVerification as any).getUserTrustScore(user.id);
+    } catch (error) {
+      console.error('Error calculating trust score:', error);
+    }
+
+    // Count ads watched
+    const adsWatched = await prisma.adWatch.count({
+      where: { userId: user.id }
+    });
+
     const stats = {
       totalEarned,
       totalWithdrawn,
       tasksCompleted: taskCompletions,
       gamesPlayed: gameSessions,
       referralsCount: referrals,
-      currentStreak: 1, // TODO: implement proper streak calculation
-      longestStreak: 1,
+      currentStreak: user.statistics?.currentStreak || 1,
+      longestStreak: user.statistics?.longestStreak || 1,
       achievementsUnlocked: 0, // TODO: implement achievements
       joinDate: user.createdAt,
-      lastActive: user.lastActiveAt
+      lastActive: user.lastActiveAt,
+      trustScore,
+      adsWatched
     };
 
     await prisma.$disconnect();

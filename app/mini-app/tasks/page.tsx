@@ -9,6 +9,7 @@ import { Target, CheckCircle, Clock, Coins, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { ProtectedRoute } from '@/components/protected-route';
+import { AdTasksWidget } from '@/components/ad-tasks-widget';
 
 interface Task {
   id: string;
@@ -314,6 +315,11 @@ function TasksContent() {
 
       {/* Tasks List */}
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Ad Tasks Widget */}
+        {user?.id && (
+          <AdTasksWidget userId={user.id} className="mb-6" />
+        )}
+
         {tasks.length === 0 ? (
           <Card className="bg-white/5 backdrop-blur-md border-white/10 p-12 text-center">
             <Target className="w-16 h-16 mx-auto mb-4 text-gray-600" />

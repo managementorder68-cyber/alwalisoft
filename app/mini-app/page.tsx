@@ -17,7 +17,8 @@ import {
   Wallet,
   User as UserIcon,
   Bell,
-  HelpCircle
+  HelpCircle,
+  Play
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -205,12 +206,15 @@ export default function MiniAppPage() {
             </Button>
           </Link>
 
-          <Link href="/mini-app/games" className="block">
-            <Button className="h-auto py-6 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 border-0 shadow-xl hover:shadow-2xl transition-all w-full">
+          <Link href="/mini-app/ads" className="block">
+            <Button className="h-auto py-6 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 border-0 shadow-xl hover:shadow-2xl transition-all w-full relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-2 py-0.5 rounded-bl">
+                جديد!
+              </div>
               <div className="text-center w-full">
-                <Zap className="w-8 h-8 mx-auto mb-2 drop-shadow-lg" />
-                <p className="font-bold text-base">العب</p>
-                <p className="text-xs font-medium opacity-90">ألعاب صغيرة</p>
+                <Play className="w-8 h-8 mx-auto mb-2 drop-shadow-lg" />
+                <p className="font-bold text-base">إعلانات</p>
+                <p className="text-xs font-medium opacity-90">شاهد واربح</p>
               </div>
             </Button>
           </Link>
@@ -226,7 +230,7 @@ export default function MiniAppPage() {
           </Link>
 
           <Link href="/mini-app/rewards" className="block">
-            <Button className="h-auto py-6 bg-gradient-to-br from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 border-0 shadow-xl hover:shadow-2xl transition-all w-full">
+            <Button className="h-auto py-6 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 border-0 shadow-xl hover:shadow-2xl transition-all w-full">
               <div className="text-center w-full">
                 <Gift className="w-8 h-8 mx-auto mb-2 drop-shadow-lg" />
                 <p className="font-bold text-base">المكافآت</p>

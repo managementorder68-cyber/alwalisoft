@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { ProtectedRoute } from '@/components/protected-route';
+import { TrustScoreBadge } from '@/components/trust-score-badge';
 
 interface UserStats {
   totalEarned: number;
@@ -25,6 +26,8 @@ interface UserStats {
   achievementsUnlocked: number;
   joinDate: string;
   lastActive: string;
+  trustScore?: number;
+  adsWatched?: number;
 }
 
 function ProfileContent() {
@@ -171,6 +174,13 @@ function ProfileContent() {
             </div>
           </div>
         </Card>
+
+        {/* Trust Score */}
+        {stats?.trustScore !== undefined && (
+          <div className="mb-6">
+            <TrustScoreBadge score={stats.trustScore} showDetails={true} />
+          </div>
+        )}
 
         {/* Referral Link */}
         <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/50 mb-6">

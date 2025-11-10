@@ -455,6 +455,7 @@ function AdsContent() {
           </Card>
         </div>
 
+       
         {/* Watch Ad Button */}
         <Card className="bg-white/5 backdrop-blur-md border-white/10 p-6">
           {canWatch ? (
@@ -572,4 +573,4 @@ export default function AdsPage() {
       <AdsContent />
     </ProtectedRoute>
   );
-}. 
+}

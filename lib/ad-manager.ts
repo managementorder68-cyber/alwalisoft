@@ -1,7 +1,10 @@
 /**
- * Google AdMob Integration Manager - محسّن
- * قراءة المتغيرات من env، إدارة حدود المشاهدة اليومية، حساب المكافآت،
- * وتسجيل المشاهدات عبر prisma.
+ * Google AdMob Integration Manager - مصحّح
+ * قراءة المتغيرات من env، إدارة حدود المشاهدات اليومية، حساب المكافآت،
+ * وتسجيل مشاهدات الإعلانات عبر prisma.
+ *
+ * ملاحظة: هذا ملف خادمي (server-side). لا يوجد هنا أي استدعاء SDK لعرض الإعلانات.
+ * واجهات العرض الحقيقية تُنفذ على العميل (client) أو عبر SDK مخصص، ثم تستدعي endpoint claim.
  */
 import { prisma } from './prisma';
 
@@ -27,7 +30,6 @@ export interface AdReward {
 
 class AdManager {
   private config: AdConfig;
-  private initialized = false;
 
   constructor() {
     this.config = {
@@ -41,7 +43,7 @@ class AdManager {
     };
   }
 
-  getAdUnitId(adType: AdType) {
+  getAdUnitId(adType: AdType): string {
     switch (adType) {
       case 'REWARDED_VIDEO':
         return this.config.rewardedVideoId;
@@ -54,28 +56,42 @@ class AdManager {
     }
   }
 
-  calculateReward(adType: AdType) {
-    // بسيط: يمكن توسيعه ليعتمد على المستوى/حالة المستخدم
+  calculateReward(adType: AdType): number {
     if (adType === 'REWARDED_VIDEO') return this.config.rewardAmount;
+    if (adType === 'INTERSTITIAL') return Math.max(0, Math.floor(this.config.rewardAmount / 5)); // مثال: 1/5
     return 0;
   }
 
-  async canWatchAd(userId: string, adType: AdType) {
-    // حساب عدد المشاهدات اليوم للمستخدم ونقارن بالحد اليومي
-    const startOfDay = new Date();
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    const count = await prisma.adWatch.count({
-      where: {
-        userId,
-        adType,
-        createdAt: { gte: startOfDay },
-      },
-    });
-    return count < this.config.dailyLimit;
+  /**
+   * يتحقق إن كان المستخدم يمكنه مشاهدة إعلان من هذا النوع اليوم
+   */
+  async canWatchAd(userId: string, adType: AdType): Promise<boolean> {
+    try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0, 0, 0);
+      // بعض المخططات تستخدم watchedAt أو createdAt؛ هنا نستخدم watchedAt إن كان موجودًا
+      const count = await prisma.adWatch.count({
+        where: {
+          userId,
+          adType,
+          OR: [
+            { watchedAt: { gte: startOfDay } },
+            { createdAt: { gte: startOfDay } }, // fallback إذا كان الحقل مختلفاً
+          ],
+        },
+      });
+      return count < this.config.dailyLimit;
+    } catch (err) {
+      console.error('[AdManager] canWatchAd error', err);
+      // إن حدث خطأ نفترض false آمن: لا نسمح بالمشاهدة إن لم نستطع التحقق
+      return false;
+    }
   }
 
-  async recordAdView(userId: string, adType: AdType, adUnitId?: string, reward = 0) {
-    // يسجل مشاهدة الإعلان وكمية المكافأة (إن وجدت)
+  /**
+   * يسجل مشاهدة الإعلان (adWatch)
+   */
+  async recordAdView(userId: string, adType: AdType, adUnitId?: string, reward = 0): Promise<void> {
     try {
       await prisma.adWatch.create({
         data: {
@@ -83,29 +99,105 @@ class AdManager {
           adType,
           adUnitId: adUnitId || this.getAdUnitId(adType),
           reward,
-        },
+          // بعض المخططات لديها watchedAt صريح، وبعضها يعتمد على createdAt الافتراضي
+          watchedAt: new Date(),
+        } as any, // cast لأن بعض سكيمات prisma قد تختلف؛ هذا يضمن التجاوز الآمن
       });
     } catch (err) {
       console.error('[AdManager] recordAdView error:', err);
-      // لا نكسر الطلب الرئيسي إذا فشل التسجيل
     }
   }
 
   /**
-   * دالة تُستدعى من الـ API قبل إظهار الإعلان أو من العميل للحصول على معلومات:
-   * - تتحقق من إمكانية المشاهدة
-   * - ترجع معرف الوحدة الإعلانية وكمية المكافأة المتوقعة
+   * إعداد مشاهدة Rewarded: يتحقق إن كان مسموحاً ثم يعيد بيانات الوحدة والمبلغ.
    */
   async prepareRewardedForUser(userId: string): Promise<AdReward> {
     if (!this.config.rewardedVideoId) {
       return { success: false, type: 'REWARDED_VIDEO', amount: 0, message: 'Rewarded Ad unit not configured' };
     }
+
     const allowed = await this.canWatchAd(userId, 'REWARDED_VIDEO');
     if (!allowed) {
       return { success: false, type: 'REWARDED_VIDEO', amount: 0, message: 'Daily ad limit reached' };
     }
+
     const amount = this.calculateReward('REWARDED_VIDEO');
     return { success: true, type: 'REWARDED_VIDEO', amount, adUnitId: this.getAdUnitId('REWARDED_VIDEO') };
+  }
+
+  /**
+   * عملية مُبسطة لمنح المكافأة بعد مشاهدة الإعلان.
+   * هذه الدالة تُستدعى بعد التأكد من أن المستخدم حصل على EARNED_REWARD على العميل.
+   */
+  async grantRewardForWatch(userId: string, amount: number): Promise<{ success: boolean; message?: string }> {
+    try {
+      await prisma.$transaction(async (tx) => {
+        // 1) تحديث رصيد المستخدم
+        await tx.user.update({
+          where: { id: userId },
+          data: { balance: { increment: amount } },
+        });
+
+        // 2) تحديث أو إنشاء wallet
+        await tx.wallet.upsert({
+          where: { userId },
+          create: {
+            userId,
+            balance: amount,
+            totalEarned: amount,
+            totalWithdrawn: 0,
+          },
+          update: {
+            balance: { increment: amount },
+            totalEarned: { increment: amount },
+          },
+        });
+
+        // 3) محاولة إدخال سجل rewardLedger إن وجد الجدول
+        try {
+          await tx.rewardLedger.create({
+            data: {
+              userId,
+              amount,
+              type: 'AD_REWARD',
+              description: 'Reward for watching ad',
+            },
+          });
+        } catch (e) {
+          // ليس شرطياً أن يوجد rewardLedger، لذا نتجاهل الخطأ
+        }
+
+        // 4) تسجيل مشاهدة الإعلان
+        await tx.adWatch.create({
+          data: {
+            userId,
+            adType: 'REWARDED_VIDEO',
+            adUnitId: this.getAdUnitId('REWARDED_VIDEO') || undefined,
+            reward: amount,
+            watchedAt: new Date(),
+          },
+        });
+      });
+
+      return { success: true };
+    } catch (err) {
+      console.error('[AdManager] grantRewardForWatch error', err);
+      return { success: false, message: 'server error' };
+    }
+  }
+
+  /**
+   * دالة مساعدة لسجل إعلان بيني (فرضياً نسجل بدون مكافأة)
+   */
+  async recordInterstitial(userId: string): Promise<boolean> {
+    try {
+      const reward = this.calculateReward('INTERSTITIAL');
+      await this.recordAdView(userId, 'INTERSTITIAL', this.getAdUnitId('INTERSTITIAL'), reward);
+      return true;
+    } catch (err) {
+      console.error('[AdManager] recordInterstitial error', err);
+      return false;
+    }
   }
 }
 

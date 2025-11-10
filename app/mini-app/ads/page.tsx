@@ -575,11 +575,148 @@ function AdsContent() {
           </Card>
         </div>
 
-        {/* Watch Ad Button */}
+                {/* Watch Ad Button */}
         <Card className="bg-white/5 backdrop-blur-md border-white/10 p-6">
           {showAdTimer ? (
             <div className="text-center py-8">
               <div className="bg-gradient-to-r from-purple-600 to-blue-600 w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center relative">
                 <div className="text-2xl font-bold">{adTimeLeft}</div>
               </div>
-              <h3 className="t
+              <h3 className="text-xl font-bold mb-2">جاري عرض الإعلان...</h3>
+              <p className="text-gray-300 text-sm mb-4">
+                يبقى: <span className="text-yellow-400 font-bold">{adTimeLeft}</span> ثانية
+              </p>
+              <div className="bg-gray-700 rounded-full h-3 mb-4 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-full transition-all duration-1000"
+                  style={{ width: `${((15 - adTimeLeft) / 15) * 100}%` }}
+                ></div>
+              </div>
+              <p className="text-gray-400 text-xs">
+                لا تغلق التطبيق أثناء عرض الإعلان
+              </p>
+            </div>
+          ) : canWatch ? (
+            <>
+              <div className="text-center mb-6">
+                <div className="bg-gradient-to-r from-purple-600 to-blue-600 w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center relative">
+                  <Play className="w-12 h-12 text-white ml-1" />
+                  {currentMultiplier > 1 && (
+                    <div className="absolute -top-2 -right-2 bg-green-500 text-white text-sm font-bold px-3 py-1 rounded-full animate-pulse">
+                      +{Math.floor((currentMultiplier - 1) * 100)}%
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-xl font-bold mb-2">جاهز للمشاهدة؟</h3>
+                <p className="text-gray-300 text-sm mb-1">
+                  متبقي اليوم: <span className="text-yellow-400 font-bold">{remainingToday}</span> إعلان
+                </p>
+                <p className="text-gray-400 text-xs">
+                  الحد الأقصى: {stats?.dailyLimit} إعلان يومياً
+                </p>
+                {trustScore < 100 && (
+                  <p className="text-orange-400 text-xs mt-2 flex items-center justify-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    درجة الثقة: {trustScore}% - شاهد الإعلان بالكامل!
+                  </p>
+                )}
+              </div>
+
+              <Button
+                onClick={startAdWatch}
+                disabled={!canWatch || adLoading}
+                className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-500 hover:via-blue-500 hover:to-purple-500 transition-all duration-300 shadow-lg hover:shadow-purple-500/50 text-white font-bold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {adLoading ? (
+                  <>
+                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                    جارٍ تحميل الإعلان...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-6 h-6 mr-2 ml-1" />
+                    شاهد الإعلان الآن
+                    {currentMultiplier > 1 && (
+                      <span className="mr-2 bg-yellow-500/30 px-2 py-1 rounded text-sm">
+                        {currentMultiplier}× مكافأة
+                      </span>
+                    )}
+                  </>
+                )}
+              </Button>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <div className="bg-green-500/20 border-2 border-green-500 w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <CheckCircle2 className="w-12 h-12 text-green-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-green-400">أحسنت!</h3>
+              <p className="text-gray-300 mb-1">
+                شاهدت <span className="text-yellow-400 font-bold">{stats?.todayCount}</span> إعلانات اليوم
+              </p>
+              <p className="text-gray-400 text-sm">
+                عد غداً لمشاهدة المزيد والحصول على عملات!
+              </p>
+            </div>
+          )}
+        </Card>
+
+        {/* Info Cards */}
+        <div className="grid grid-cols-1 gap-4">
+          <Card className="bg-blue-500/10 backdrop-blur-md border-blue-500/30 p-4">
+            <h4 className="font-bold mb-2 flex items-center gap-2">
+              <Coins className="w-5 h-5 text-yellow-400" />
+              نصائح للحصول على أقصى استفادة
+            </h4>
+            <ul className="text-sm text-gray-300 space-y-1">
+              <li>• شاهد الإعلان بالكامل (15-30 ثانية)</li>
+              <li>• لا تغلق الإعلان مبكراً</li>
+              <li>• حافظ على درجة ثقة عالية (&gt;80%)</li>
+              <li>• أكمل مهام الإعلانات للحصول على مكافآت إضافية</li>
+            </ul>
+          </Card>
+
+          {streak > 0 && (
+            <Card className="bg-orange-500/10 backdrop-blur-md border-orange-500/30 p-4">
+              <h4 className="font-bold mb-2 flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-400" />
+                سلسلتك النشطة: {streak} يوم
+              </h4>
+              <ul className="text-sm text-gray-300 space-y-1">
+                <li>• 3 أيام: +50 عملة/إعلان</li>
+                <li>• 7 أيام: +100 عملة/إعلان</li>
+                <li>• 30 يوم: +200 عملة/إعلان</li>
+              </ul>
+            </Card>
+          )}
+        </div>
+
+        {/* Daily Progress */}
+        {stats && (
+          <Card className="bg-white/5 backdrop-blur-md border-white/10 p-4">
+            <h4 className="font-bold mb-3">تقدم اليوم</h4>
+            <div className="relative">
+              <div className="bg-gray-700 h-3 rounded-full overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 h-full transition-all duration-500"
+                  style={{ width: `${(stats.todayCount / stats.dailyLimit) * 100}%` }}
+                ></div>
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-2">
+                {stats.todayCount} / {stats.dailyLimit} إعلانات
+              </p>
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function AdsPage() {
+  return (
+    <ProtectedRoute>
+      <AdsContent />
+    </ProtectedRoute>
+  );
+}
